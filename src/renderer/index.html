@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:;">
+  <title>minimal</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Title bar / toolbar -->
+    <div id="toolbar">
+      <!-- Window controls (Windows/Linux only) -->
+      <div id="window-controls">
+        <button id="btn-minimize" class="window-btn" aria-label="Minimize">
+          <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+        </button>
+        <button id="btn-maximize" class="window-btn" aria-label="Maximize">
+          <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+        <button id="btn-close" class="window-btn window-btn-close" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+      </div>
+
+      <!-- Branding -->
+      <div id="branding">minimal</div>
+
+      <!-- Tab bar + controls row -->
+      <div id="toolbar-row">
+        <div id="toolbar-spacer"></div>
+        <div id="tab-bar">
+          <div id="tabs-container"></div>
+          <button id="btn-new-tab" class="icon-btn" aria-label="New Tab" title="New Tab">+</button>
+        </div>
+        <div id="toolbar-controls">
+          <button id="btn-settings" class="icon-btn" aria-label="Typography Settings" title="Typography Settings (Ctrl+T)">Aa</button>
+          <button id="btn-theme" class="icon-btn" aria-label="Toggle Theme" title="Toggle Dark/Light Mode">
+            <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+            <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button id="btn-help" class="icon-btn" aria-label="Keyboard Shortcuts" title="Keyboard Shortcuts (Ctrl+/)">?</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="divider"></div>
+
+    <!-- Editor area -->
+    <div id="editor-container"></div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+      <span id="word-count">0 words</span>
+      <span class="status-sep">&middot;</span>
+      <span id="char-count">0 characters</span>
+    </div>
+
+    <!-- Settings panel (hidden by default) -->
+    <div id="settings-panel" class="panel hidden">
+      <div class="panel-header">Typography</div>
+      <div id="font-list"></div>
+      <div class="panel-divider"></div>
+      <div class="panel-header">Size</div>
+      <div id="font-size-control">
+        <span class="size-label size-small">A</span>
+        <input type="range" id="font-size-slider" min="12" max="28" step="1" value="16">
+        <span class="size-label size-large">A</span>
+      </div>
+      <div id="font-size-value">16 pt</div>
+    </div>
+
+    <!-- Welcome modal (hidden by default) -->
+    <div id="welcome-overlay" class="hidden">
+      <div id="welcome-modal">
+        <div id="welcome-header">
+          <h1 id="welcome-title">Welcome to minimal</h1>
+          <p id="welcome-subtitle">A minimalist text editor where formatting lives in keyboard shortcuts.</p>
+        </div>
+        <div id="welcome-divider"></div>
+        <div id="shortcuts-list"></div>
+        <div id="welcome-divider-bottom"></div>
+        <div id="welcome-footer">
+          <label id="welcome-toggle">
+            <input type="checkbox" id="dont-show-again">
+            <span>Don't show on startup</span>
+          </label>
+          <button id="btn-welcome-done" class="done-btn">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
