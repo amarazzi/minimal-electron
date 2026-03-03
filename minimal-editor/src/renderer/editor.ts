@@ -473,7 +473,8 @@ function showLinkPrompt(view: EditorView): boolean {
   const tree = syntaxTree(view.state);
 
   // Check if cursor/selection is inside an existing link
-  let existingLink: { from: number; to: number; textFrom: number; textTo: number; urlFrom: number; urlTo: number } | null = null;
+  type LinkInfo = { from: number; to: number; textFrom: number; textTo: number; urlFrom: number; urlTo: number };
+  let foundLink: LinkInfo | null = null;
   tree.iterate({ from: from, to: Math.max(to, from + 1), enter(node) {
     if (node.name === 'Link') {
       const linkFrom = node.from;
@@ -494,9 +495,10 @@ function showLinkPrompt(view: EditorView): boolean {
           }
         } while (cursor.nextSibling());
       }
-      existingLink = { from: linkFrom, to: linkTo, textFrom, textTo, urlFrom, urlTo };
+      foundLink = { from: linkFrom, to: linkTo, textFrom, textTo, urlFrom, urlTo };
     }
   }});
+  const existingLink: LinkInfo | null = foundLink;
 
   // Position the tooltip near the selection
   const coords = view.coordsAtPos(from);
