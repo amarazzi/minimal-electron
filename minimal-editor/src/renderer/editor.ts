@@ -173,6 +173,22 @@ function buildDecorations(view: EditorView): DecorationSet {
   const tree = syntaxTree(view.state);
   const doc = view.state.doc;
 
+  // WYSIWYG: determine cursor lines to reveal syntax only where the cursor is
+  const cursorLines = new Set<number>();
+  for (const range of view.state.selection.ranges) {
+    const startLine = doc.lineAt(range.from).number;
+    const endLine = doc.lineAt(range.to).number;
+    for (let i = startLine; i <= endLine; i++) {
+      cursorLines.add(i);
+    }
+  }
+
+  function onCursorLine(pos: number): boolean {
+    return cursorLines.has(doc.lineAt(Math.min(pos, doc.length)).number);
+  }
+
+  const hideDeco = Decoration.replace({});
+
   tree.iterate({
     enter(node) {
       const { from, to, name } = node;
@@ -186,11 +202,21 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: headingDeco });
       }
 
-      // Heading markers (# symbols)
+      // Heading markers (# symbols + trailing space)
       if (name === 'HeaderMark') {
-        // Include the space after the marker
-        const afterMark = Math.min(to + 1, doc.length);
-        decorations.push({ from, to: afterMark, deco: markerDeco });
+        const markText = doc.sliceString(from, to);
+        if (markText[0] === '#') {
+          let afterMark = to;
+          if (to < doc.length && doc.sliceString(to, to + 1) === ' ') afterMark = to + 1;
+          if (onCursorLine(from)) {
+            decorations.push({ from, to: afterMark, deco: markerDeco });
+          } else {
+            decorations.push({ from, to: afterMark, deco: hideDeco });
+          }
+        } else {
+          // Setext underlines – keep muted
+          decorations.push({ from, to, deco: markerDeco });
+        }
       }
 
       // Bold (**text**)
@@ -205,7 +231,11 @@ function buildDecorations(view: EditorView): DecorationSet {
 
       // Emphasis markers (* or **)
       if (name === 'EmphasisMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        if (onCursorLine(from)) {
+          decorations.push({ from, to, deco: markerDeco });
+        } else {
+          decorations.push({ from, to, deco: hideDeco });
+        }
       }
 
       // Inline code
@@ -215,7 +245,18 @@ function buildDecorations(view: EditorView): DecorationSet {
 
       // Code marks (backticks)
       if (name === 'CodeMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        const text = doc.sliceString(from, to);
+        if (text.length >= 3) {
+          // Fenced code block markers – always show muted
+          decorations.push({ from, to, deco: markerDeco });
+        } else {
+          // Inline backticks
+          if (onCursorLine(from)) {
+            decorations.push({ from, to, deco: markerDeco });
+          } else {
+            decorations.push({ from, to, deco: hideDeco });
+          }
+        }
       }
 
       // Fenced code blocks
@@ -228,21 +269,24 @@ function buildDecorations(view: EditorView): DecorationSet {
       }
 
       // Links [text](url)
-      if (name === 'Link') {
-        // We'll style sub-parts individually
-      }
       if (name === 'LinkMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        if (onCursorLine(from)) {
+          decorations.push({ from, to, deco: markerDeco });
+        } else {
+          decorations.push({ from, to, deco: hideDeco });
+        }
       }
-      // Link label text gets link color
       if (name === 'LinkLabel') {
-        // The content between [ and ] - skip the brackets themselves
         if (to - from > 2) {
           decorations.push({ from: from + 1, to: to - 1, deco: linkTextDeco });
         }
       }
       if (name === 'URL') {
-        decorations.push({ from, to, deco: linkUrlDeco });
+        if (onCursorLine(from)) {
+          decorations.push({ from, to, deco: linkUrlDeco });
+        } else {
+          decorations.push({ from, to, deco: hideDeco });
+        }
       }
 
       // Blockquotes
@@ -250,7 +294,13 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: blockquoteDeco });
       }
       if (name === 'QuoteMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        if (onCursorLine(from)) {
+          decorations.push({ from, to, deco: markerDeco });
+        } else {
+          let end = to;
+          if (end < doc.length && doc.sliceString(end, end + 1) === ' ') end++;
+          decorations.push({ from, to: end, deco: hideDeco });
+        }
       }
 
       // List markers
@@ -265,7 +315,6 @@ function buildDecorations(view: EditorView): DecorationSet {
     },
   });
 
-  // Use Decoration.set with sort flag to handle ordering
   return Decoration.set(
     decorations.map((d) => d.deco.range(d.from, d.to)),
     true
@@ -281,7 +330,10 @@ const markdownDecoPlugin = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.startState.facet(EditorView.darkTheme) !== update.state.facet(EditorView.darkTheme)) {
+      if (update.docChanged || update.viewportChanged ||
+          update.startState.selection.main.from !== update.state.selection.main.from ||
+          update.startState.selection.main.to !== update.state.selection.main.to ||
+          update.startState.facet(EditorView.darkTheme) !== update.state.facet(EditorView.darkTheme)) {
         this.decorations = buildDecorations(update.view);
       }
     }

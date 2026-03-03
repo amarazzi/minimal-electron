@@ -354,6 +354,21 @@ body.has-window-controls #app {
   color: var(--text-primary);
 }
 
+.tab-title-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  width: 80px;
+  line-height: 1.36;
+}
+
 .tab-close {
   display: flex;
   align-items: center;
