@@ -668,24 +668,29 @@ function toggleLinePrefix(view: EditorView, prefix: string): boolean {
 // ── Click-to-open links ───────────────────────────────────────────────
 
 function handleLinkClick(view: EditorView, event: MouseEvent): boolean {
-  // Only handle Cmd/Ctrl+click
-  const isMac = navigator.platform.includes('Mac');
-  if (!(isMac ? event.metaKey : event.ctrlKey)) return false;
-
   const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
   if (pos === null) return false;
 
   const tree = syntaxTree(view.state);
   let url: string | null = null;
+  let linkTextFrom = -1;
+  let linkTextTo = -1;
 
+  // Walk all nodes at the click position to find a Link
   tree.iterate({
     from: pos,
     to: pos + 1,
     enter(node) {
       if (node.name === 'Link') {
         const c = node.node.cursor();
+        let markCount = 0;
         if (c.firstChild()) {
           do {
+            if (c.name === 'LinkMark') {
+              markCount++;
+              if (markCount === 1) linkTextFrom = c.to;
+              if (markCount === 2) linkTextTo = c.from;
+            }
             if (c.name === 'URL') {
               url = view.state.doc.sliceString(c.from, c.to);
             }
@@ -695,7 +700,8 @@ function handleLinkClick(view: EditorView, event: MouseEvent): boolean {
     },
   });
 
-  if (url) {
+  // Only open if the click was on the link text portion (between [ and ])
+  if (url && linkTextFrom >= 0 && linkTextTo > linkTextFrom && pos >= linkTextFrom && pos <= linkTextTo) {
     const api = (window as any).electronAPI;
     if (api?.openExternal) {
       api.openExternal(url);
