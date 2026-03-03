@@ -22,6 +22,7 @@ declare global {
       minimizeWindow(): void;
       maximizeWindow(): void;
       onBeforeClose(callback: () => void): void;
+      onFontSizeShortcut(callback: (key: string) => void): void;
       getFilePathFromDrop(file: File): string;
       platform: string;
     };
