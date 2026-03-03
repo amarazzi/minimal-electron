@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 export interface ElectronAPI {
   // File operations
@@ -17,6 +17,9 @@ export interface ElectronAPI {
 
   // Events from main
   onBeforeClose(callback: () => void): void;
+
+  // Utilities
+  getFilePathFromDrop(file: File): string;
 
   // Platform
   platform: string;
@@ -44,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onBeforeClose: (callback: () => void) => {
     ipcRenderer.on('app:before-close', () => callback());
   },
+
+  // Utilities
+  getFilePathFromDrop: (file: File) => webUtils.getPathForFile(file),
 
   // Platform
   platform: process.platform,

@@ -6,6 +6,7 @@ let mainWindow: BrowserWindow | null = null;
 let isForceClosing = false;
 
 function createWindow(): void {
+  isForceClosing = false;
   const isMac = process.platform === 'darwin';
 
   mainWindow = new BrowserWindow({
