@@ -385,6 +385,14 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     closeTabWithSaveCheck(state, state.activeTabId, editorView);
   }
+  if (mod && e.key === '-') {
+    e.preventDefault();
+    state.setFontSize(state.fontSize - 1);
+  }
+  if (mod && (e.key === '=' || e.key === '+')) {
+    e.preventDefault();
+    state.setFontSize(state.fontSize + 1);
+  }
   // Escape closes modals
   if (e.key === 'Escape') {
     if (state.showWelcome) {
