@@ -472,32 +472,32 @@ function showLinkPrompt(view: EditorView): boolean {
   const tree = syntaxTree(view.state);
 
   // Check if cursor/selection is inside an existing link
-  type LinkInfo = { from: number; to: number; textFrom: number; textTo: number; urlFrom: number; urlTo: number };
-  let foundLink: LinkInfo | null = null;
+  let linkFrom = -1, linkTo = -1, linkTextFrom = -1, linkTextTo = -1, linkUrlFrom = -1, linkUrlTo = -1;
+  let hasExistingLink = false;
   tree.iterate({ from: from, to: Math.max(to, from + 1), enter(node) {
     if (node.name === 'Link') {
-      const linkFrom = node.from;
-      const linkTo = node.to;
-      let textFrom = linkFrom, textTo = linkFrom, urlFrom = linkTo, urlTo = linkTo;
-      // Find LinkLabel and URL children
-      const cursor = node.node.cursor();
-      if (cursor.firstChild()) {
+      hasExistingLink = true;
+      linkFrom = node.from;
+      linkTo = node.to;
+      linkTextFrom = node.from;
+      linkTextTo = node.from;
+      linkUrlFrom = node.to;
+      linkUrlTo = node.to;
+      const c = node.node.cursor();
+      if (c.firstChild()) {
         do {
-          if (cursor.name === 'LinkLabel') {
-            // LinkLabel includes [ and ], content is inside
-            textFrom = cursor.from + 1;
-            textTo = cursor.to - 1;
+          if (c.name === 'LinkLabel') {
+            linkTextFrom = c.from + 1;
+            linkTextTo = c.to - 1;
           }
-          if (cursor.name === 'URL') {
-            urlFrom = cursor.from;
-            urlTo = cursor.to;
+          if (c.name === 'URL') {
+            linkUrlFrom = c.from;
+            linkUrlTo = c.to;
           }
-        } while (cursor.nextSibling());
+        } while (c.nextSibling());
       }
-      foundLink = { from: linkFrom, to: linkTo, textFrom, textTo, urlFrom, urlTo };
     }
   }});
-  const existingLink: LinkInfo | null = foundLink;
 
   // Position the tooltip near the selection
   const coords = view.coordsAtPos(from);
@@ -513,24 +513,22 @@ function showLinkPrompt(view: EditorView): boolean {
   input.type = 'text';
   input.placeholder = 'Paste or type a link...';
 
-  if (existingLink) {
-    input.value = view.state.sliceDoc(existingLink.urlFrom, existingLink.urlTo);
+  if (hasExistingLink) {
+    input.value = view.state.sliceDoc(linkUrlFrom, linkUrlTo);
   }
 
   prompt.appendChild(input);
 
   // Add remove button if editing existing link
-  if (existingLink) {
+  if (hasExistingLink) {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'link-prompt-remove';
     removeBtn.textContent = 'Remove';
     removeBtn.addEventListener('click', () => {
-      if (existingLink) {
-        const linkText = view.state.sliceDoc(existingLink.textFrom, existingLink.textTo);
-        view.dispatch({
-          changes: { from: existingLink.from, to: existingLink.to, insert: linkText },
-        });
-      }
+      const linkText = view.state.sliceDoc(linkTextFrom, linkTextTo);
+      view.dispatch({
+        changes: { from: linkFrom, to: linkTo, insert: linkText },
+      });
       dismissLinkPrompt();
       view.focus();
     });
@@ -549,14 +547,15 @@ function showLinkPrompt(view: EditorView): boolean {
 
   input.focus();
 
+  const isEditing = hasExistingLink;
   const commit = () => {
     const url = input.value.trim();
     if (!url) {
       // If editing existing link and cleared URL, remove the link
-      if (existingLink) {
-        const linkText = view.state.sliceDoc(existingLink.textFrom, existingLink.textTo);
+      if (isEditing) {
+        const linkText = view.state.sliceDoc(linkTextFrom, linkTextTo);
         view.dispatch({
-          changes: { from: existingLink.from, to: existingLink.to, insert: linkText },
+          changes: { from: linkFrom, to: linkTo, insert: linkText },
         });
       }
       dismissLinkPrompt();
@@ -564,10 +563,10 @@ function showLinkPrompt(view: EditorView): boolean {
       return;
     }
 
-    if (existingLink) {
+    if (isEditing) {
       // Update URL of existing link
       view.dispatch({
-        changes: { from: existingLink.urlFrom, to: existingLink.urlTo, insert: url },
+        changes: { from: linkUrlFrom, to: linkUrlTo, insert: url },
       });
     } else if (from < to) {
       // Wrap selected text as link
