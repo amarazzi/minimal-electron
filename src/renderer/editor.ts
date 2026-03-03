@@ -109,6 +109,8 @@ function buildTheme(isDark: boolean): Extension {
       },
       '.md-link-text': {
         color: linkColor,
+        textDecoration: 'underline',
+        cursor: 'pointer',
       },
       '.md-link-url': {
         color: muted,
