@@ -490,11 +490,16 @@ function buildFormattingKeymap(state: AppState) {
       run: () => { state.addTab(); return true; },
     },
     {
+      key: 'Mod-t',
+      run: () => { state.addTab(); return true; },
+      preventDefault: true,
+    },
+    {
       key: 'Mod-/',
       run: () => { state.toggleWelcome(); return true; },
     },
     {
-      key: 'Mod-t',
+      key: 'Mod-Shift-t',
       run: () => { state.toggleSettings(); return true; },
       preventDefault: true,
     },

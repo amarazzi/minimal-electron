@@ -16,7 +16,8 @@ function createWindow(): void {
     frame: isMac,
     titleBarStyle: isMac ? 'hiddenInset' : undefined,
     trafficLightPosition: isMac ? { x: 16, y: 16 } : undefined,
-    backgroundColor: '#1c1c1e',
+    transparent: !isMac,
+    backgroundColor: isMac ? '#1c1c1e' : undefined,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

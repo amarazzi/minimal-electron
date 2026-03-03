@@ -274,6 +274,7 @@ const shortcuts = [
   {
     section: 'File',
     items: [
+      { keys: 'T', action: 'New tab' },
       { keys: 'N', action: 'New tab' },
       { keys: 'W', action: 'Close tab' },
       { keys: 'S', action: 'Save' },
@@ -294,7 +295,7 @@ const shortcuts = [
       { keys: '+', action: 'Increase font size' },
       { keys: '−', action: 'Decrease font size' },
       { keys: '⇧D', action: 'Toggle dark / light mode' },
-      { keys: 'T', action: 'Typography settings' },
+      { keys: '⇧T', action: 'Typography settings' },
       { keys: '/', action: 'Show this window' },
     ],
   },
