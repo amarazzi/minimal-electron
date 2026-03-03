@@ -241,17 +241,37 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: markerDeco });
       }
 
-      // Links [text](url) – always hide syntax
-      if (name === 'LinkMark') {
-        decorations.push({ from, to, deco: hideDeco });
+      // Links [text](url) – hide syntax, style link text
+      if (name === 'Link') {
+        // Walk children to find LinkMark and URL positions
+        const linkNode = node.node;
+        const c = linkNode.cursor();
+        let firstMarkEnd = -1; // end of '['
+        let secondMarkFrom = -1; // start of ']'
+        let markCount = 0;
+        if (c.firstChild()) {
+          do {
+            if (c.name === 'LinkMark') {
+              markCount++;
+              decorations.push({ from: c.from, to: c.to, deco: hideDeco });
+              if (markCount === 1) firstMarkEnd = c.to;
+              if (markCount === 2) secondMarkFrom = c.from;
+            }
+            if (c.name === 'URL') {
+              decorations.push({ from: c.from, to: c.to, deco: hideDeco });
+            }
+          } while (c.nextSibling());
+        }
+        // Style the link text (between [ and ])
+        if (firstMarkEnd >= 0 && secondMarkFrom > firstMarkEnd) {
+          decorations.push({ from: firstMarkEnd, to: secondMarkFrom, deco: linkTextDeco });
+        }
+        return false; // don't descend into Link children again
       }
       if (name === 'LinkLabel') {
         if (to - from > 2) {
           decorations.push({ from: from + 1, to: to - 1, deco: linkTextDeco });
         }
-      }
-      if (name === 'URL') {
-        decorations.push({ from, to, deco: hideDeco });
       }
 
       // Blockquotes
