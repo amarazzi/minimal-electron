@@ -147,6 +147,7 @@ document.getElementById('btn-new-tab')!.addEventListener('click', () => {
 
 const wordCountEl = document.getElementById('word-count')!;
 const charCountEl = document.getElementById('char-count')!;
+const saveStatusEl = document.getElementById('save-status')!;
 
 function updateStatusBar(): void {
   const wc = state.wordCount();
@@ -155,9 +156,30 @@ function updateStatusBar(): void {
   charCountEl.textContent = `${cc} character${cc !== 1 ? 's' : ''}`;
 }
 
+function updateSaveStatus(): void {
+  const tab = state.activeTab;
+  if (!tab) return;
+  const isSaved = tab.content === tab.savedContent;
+  if (isSaved) {
+    saveStatusEl.className = 'saved';
+    saveStatusEl.innerHTML = '<span class="save-dot"></span> Saved';
+  } else {
+    saveStatusEl.className = '';
+    saveStatusEl.innerHTML = '<span class="save-dot"></span> Unsaved';
+  }
+}
+
 updateStatusBar();
-state.on('content-changed', updateStatusBar);
-state.on('active-tab-changed', updateStatusBar);
+updateSaveStatus();
+state.on('content-changed', () => {
+  updateStatusBar();
+  updateSaveStatus();
+});
+state.on('active-tab-changed', () => {
+  updateStatusBar();
+  updateSaveStatus();
+});
+state.on('save-status-changed', updateSaveStatus);
 
 // ── Settings Panel ────────────────────────────────────────────────────
 
