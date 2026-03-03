@@ -141,11 +141,24 @@ body {
               color var(--transition-speed) var(--transition-fn);
 }
 
+/* Transparent body on Linux/Windows so rounded corners show through */
+body.has-window-controls {
+  background: transparent !important;
+}
+
 #app {
   position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+  transition: background-color var(--transition-speed) var(--transition-fn);
+}
+
+/* Rounded window corners on Linux/Windows (transparent frameless window) */
+body.has-window-controls #app {
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -334,6 +347,32 @@ body {
   color: var(--text-primary);
 }
 
+.tab-scroll-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s var(--transition-fn),
+              background-color 0.15s var(--transition-fn);
+  padding: 0;
+}
+
+.tab-scroll-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab-scroll-btn.hidden {
+  display: none;
+}
+
 #btn-new-tab {
   flex-shrink: 0;
   border: none;
@@ -363,9 +402,9 @@ body {
   flex-shrink: 0;
 }
 
-/* Shift controls left when window controls are present (Linux/Windows) */
+/* Keep same right alignment when window controls are present (Linux/Windows) */
 body.has-window-controls #toolbar-controls {
-  padding-right: 148px;
+  padding-right: var(--space-4);
 }
 
 .icon-btn {

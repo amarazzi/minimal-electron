@@ -72,6 +72,18 @@ state.on('theme-changed', applyTheme);
 // ── Tabs ──────────────────────────────────────────────────────────────
 
 const tabsContainer = document.getElementById('tabs-container')!;
+const btnScrollLeft = document.getElementById('btn-scroll-left')!;
+const btnScrollRight = document.getElementById('btn-scroll-right')!;
+
+function updateScrollArrows(): void {
+  const { scrollLeft, scrollWidth, clientWidth } = tabsContainer;
+  const hasOverflow = scrollWidth > clientWidth + 1;
+  const atStart = scrollLeft <= 1;
+  const atEnd = scrollLeft + clientWidth >= scrollWidth - 1;
+
+  btnScrollLeft.classList.toggle('hidden', !hasOverflow || atStart);
+  btnScrollRight.classList.toggle('hidden', !hasOverflow || atEnd);
+}
 
 function renderTabs(): void {
   tabsContainer.innerHTML = '';
@@ -102,7 +114,25 @@ function renderTabs(): void {
 
     tabsContainer.appendChild(tabEl);
   });
+
+  // Update scroll arrows after rendering tabs
+  requestAnimationFrame(updateScrollArrows);
 }
+
+// Scroll arrow click handlers
+btnScrollLeft.addEventListener('click', () => {
+  tabsContainer.scrollBy({ left: -150, behavior: 'smooth' });
+});
+
+btnScrollRight.addEventListener('click', () => {
+  tabsContainer.scrollBy({ left: 150, behavior: 'smooth' });
+});
+
+// Update arrows on scroll
+tabsContainer.addEventListener('scroll', updateScrollArrows);
+
+// Update arrows on window resize
+window.addEventListener('resize', updateScrollArrows);
 
 renderTabs();
 state.on('tabs-changed', renderTabs);
@@ -244,6 +274,7 @@ const shortcuts = [
   {
     section: 'File',
     items: [
+      { keys: 'T', action: 'New tab' },
       { keys: 'N', action: 'New tab' },
       { keys: 'W', action: 'Close tab' },
       { keys: 'S', action: 'Save' },
@@ -264,7 +295,7 @@ const shortcuts = [
       { keys: '+', action: 'Increase font size' },
       { keys: '−', action: 'Decrease font size' },
       { keys: '⇧D', action: 'Toggle dark / light mode' },
-      { keys: 'T', action: 'Typography settings' },
+      { keys: '⇧T', action: 'Typography settings' },
       { keys: '/', action: 'Show this window' },
     ],
   },
