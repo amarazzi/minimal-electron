@@ -173,20 +173,6 @@ function buildDecorations(view: EditorView): DecorationSet {
   const tree = syntaxTree(view.state);
   const doc = view.state.doc;
 
-  // WYSIWYG: determine cursor lines to reveal syntax only where the cursor is
-  const cursorLines = new Set<number>();
-  for (const range of view.state.selection.ranges) {
-    const startLine = doc.lineAt(range.from).number;
-    const endLine = doc.lineAt(range.to).number;
-    for (let i = startLine; i <= endLine; i++) {
-      cursorLines.add(i);
-    }
-  }
-
-  function onCursorLine(pos: number): boolean {
-    return cursorLines.has(doc.lineAt(Math.min(pos, doc.length)).number);
-  }
-
   const hideDeco = Decoration.replace({});
 
   tree.iterate({
@@ -202,17 +188,13 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: headingDeco });
       }
 
-      // Heading markers (# symbols + trailing space)
+      // Heading markers (# symbols + trailing space) – always hide
       if (name === 'HeaderMark') {
         const markText = doc.sliceString(from, to);
         if (markText[0] === '#') {
           let afterMark = to;
           if (to < doc.length && doc.sliceString(to, to + 1) === ' ') afterMark = to + 1;
-          if (onCursorLine(from)) {
-            decorations.push({ from, to: afterMark, deco: markerDeco });
-          } else {
-            decorations.push({ from, to: afterMark, deco: hideDeco });
-          }
+          decorations.push({ from, to: afterMark, deco: hideDeco });
         } else {
           // Setext underlines – keep muted
           decorations.push({ from, to, deco: markerDeco });
@@ -229,13 +211,9 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: italicDeco });
       }
 
-      // Emphasis markers (* or **)
+      // Emphasis markers (* or **) – always hide
       if (name === 'EmphasisMark') {
-        if (onCursorLine(from)) {
-          decorations.push({ from, to, deco: markerDeco });
-        } else {
-          decorations.push({ from, to, deco: hideDeco });
-        }
+        decorations.push({ from, to, deco: hideDeco });
       }
 
       // Inline code
@@ -243,19 +221,13 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: codeDeco });
       }
 
-      // Code marks (backticks)
+      // Code marks (backticks) – hide inline, keep fenced muted
       if (name === 'CodeMark') {
         const text = doc.sliceString(from, to);
         if (text.length >= 3) {
-          // Fenced code block markers – always show muted
           decorations.push({ from, to, deco: markerDeco });
         } else {
-          // Inline backticks
-          if (onCursorLine(from)) {
-            decorations.push({ from, to, deco: markerDeco });
-          } else {
-            decorations.push({ from, to, deco: hideDeco });
-          }
+          decorations.push({ from, to, deco: hideDeco });
         }
       }
 
@@ -268,13 +240,9 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: markerDeco });
       }
 
-      // Links [text](url)
+      // Links [text](url) – always hide syntax
       if (name === 'LinkMark') {
-        if (onCursorLine(from)) {
-          decorations.push({ from, to, deco: markerDeco });
-        } else {
-          decorations.push({ from, to, deco: hideDeco });
-        }
+        decorations.push({ from, to, deco: hideDeco });
       }
       if (name === 'LinkLabel') {
         if (to - from > 2) {
@@ -282,11 +250,7 @@ function buildDecorations(view: EditorView): DecorationSet {
         }
       }
       if (name === 'URL') {
-        if (onCursorLine(from)) {
-          decorations.push({ from, to, deco: linkUrlDeco });
-        } else {
-          decorations.push({ from, to, deco: hideDeco });
-        }
+        decorations.push({ from, to, deco: hideDeco });
       }
 
       // Blockquotes
@@ -294,13 +258,9 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: blockquoteDeco });
       }
       if (name === 'QuoteMark') {
-        if (onCursorLine(from)) {
-          decorations.push({ from, to, deco: markerDeco });
-        } else {
-          let end = to;
-          if (end < doc.length && doc.sliceString(end, end + 1) === ' ') end++;
-          decorations.push({ from, to: end, deco: hideDeco });
-        }
+        let end = to;
+        if (end < doc.length && doc.sliceString(end, end + 1) === ' ') end++;
+        decorations.push({ from, to: end, deco: hideDeco });
       }
 
       // List markers
@@ -331,8 +291,6 @@ const markdownDecoPlugin = ViewPlugin.fromClass(
 
     update(update: ViewUpdate) {
       if (update.docChanged || update.viewportChanged ||
-          update.startState.selection.main.from !== update.state.selection.main.from ||
-          update.startState.selection.main.to !== update.state.selection.main.to ||
           update.startState.facet(EditorView.darkTheme) !== update.state.facet(EditorView.darkTheme)) {
         this.decorations = buildDecorations(update.view);
       }
@@ -399,7 +357,7 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
   if (from < to) {
     const selected = view.state.sliceDoc(from, to);
 
-    // Check if already wrapped → unwrap
+    // Check if already wrapped (selection includes markers) → unwrap
     if (!endMarker && selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2) {
       const inner = selected.slice(marker.length, -marker.length);
       view.dispatch({
@@ -407,6 +365,23 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
         selection: { anchor: from, head: from + inner.length },
       });
       return true;
+    }
+
+    // Check if markers surround the selection (WYSIWYG – markers hidden but in document)
+    if (!endMarker) {
+      const beforeFrom = Math.max(0, from - marker.length);
+      const afterTo = Math.min(to + closing.length, view.state.doc.length);
+      const before = view.state.sliceDoc(beforeFrom, from);
+      const after = view.state.sliceDoc(to, afterTo);
+      if (before === marker && after === closing) {
+        view.dispatch({
+          changes: [
+            { from: beforeFrom, to: from, insert: '' },
+            { from: to, to: afterTo, insert: '' },
+          ],
+        });
+        return true;
+      }
     }
 
     const wrapped = marker + selected + closing;
