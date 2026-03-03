@@ -95,9 +95,14 @@ function renderTabs(): void {
 
     const titleEl = document.createElement('span');
     titleEl.className = 'tab-title';
-    const isUnsaved = tab.content !== tab.savedContent;
-    titleEl.textContent = tab.title + (isUnsaved ? ' •' : '');
+    titleEl.textContent = tab.title;
     tabEl.appendChild(titleEl);
+
+    const dot = document.createElement('span');
+    dot.className = 'tab-save-dot';
+    const isUnsaved = tab.content !== tab.savedContent;
+    if (!isUnsaved) dot.classList.add('saved');
+    tabEl.appendChild(dot);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'tab-close';
@@ -147,7 +152,6 @@ document.getElementById('btn-new-tab')!.addEventListener('click', () => {
 
 const wordCountEl = document.getElementById('word-count')!;
 const charCountEl = document.getElementById('char-count')!;
-const saveStatusEl = document.getElementById('save-status')!;
 
 function updateStatusBar(): void {
   const wc = state.wordCount();
@@ -156,24 +160,14 @@ function updateStatusBar(): void {
   charCountEl.textContent = `${cc} character${cc !== 1 ? 's' : ''}`;
 }
 
-function updateSaveStatus(): void {
-  const tab = state.activeTab;
-  if (!tab) return;
-  const isSaved = tab.content === tab.savedContent;
-  saveStatusEl.classList.toggle('saved', isSaved);
-}
 
 updateStatusBar();
-updateSaveStatus();
 state.on('content-changed', () => {
   updateStatusBar();
-  updateSaveStatus();
+  renderTabs();
 });
-state.on('active-tab-changed', () => {
-  updateStatusBar();
-  updateSaveStatus();
-});
-state.on('save-status-changed', updateSaveStatus);
+state.on('active-tab-changed', updateStatusBar);
+state.on('save-status-changed', renderTabs);
 
 // ── Settings Panel ────────────────────────────────────────────────────
 

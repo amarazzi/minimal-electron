@@ -546,21 +546,16 @@ body.has-window-controls #toolbar-controls {
   opacity: 0.5;
 }
 
-#save-status {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-
-#save-status .save-dot {
-  width: 8px;
-  height: 8px;
+.tab-save-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--text-muted);
+  flex-shrink: 0;
   transition: background-color 0.3s var(--transition-fn);
 }
 
-#save-status.saved .save-dot {
+.tab-save-dot.saved {
   background: #34c759;
 }
 
@@ -897,7 +892,6 @@ button:focus:not(:focus-visible) {
 #toolbar,
 #status-bar,
 #status-bar-inner,
-#save-status,
 #divider,
 .tab,
 .tab-title,
