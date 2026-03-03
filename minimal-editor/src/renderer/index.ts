@@ -245,7 +245,6 @@ const shortcuts = [
   {
     section: 'File',
     items: [
-      { keys: 'N', action: 'New tab' },
       { keys: 'W', action: 'Close tab' },
       { keys: 'S', action: 'Save' },
       { keys: '⇧S', action: 'Save as' },

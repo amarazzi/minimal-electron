@@ -554,10 +554,6 @@ function buildFormattingKeymap(state: AppState) {
     },
     // File operations
     {
-      key: 'Mod-n',
-      run: () => { state.addTab(); return true; },
-    },
-    {
       key: 'Mod-t',
       run: () => { state.addTab(); return true; },
       preventDefault: true,

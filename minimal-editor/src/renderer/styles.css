@@ -392,29 +392,40 @@ body.has-window-controls #toolbar-controls {
   position: absolute;
   top: 62px;
   right: 60px;
-  width: 220px;
+  width: 190px;
   background: var(--bg-secondary);
   border: 1px solid var(--divider);
   border-radius: 6px;
-  padding: 12px;
+  padding: 8px 12px;
   z-index: 50;
   box-shadow: 0 8px 32px var(--shadow-modal);
   animation: panelIn 0.15s ease;
 }
 
-/* Arrow / caret pointing up toward the Aa button */
+/* Arrow border (behind) */
 #settings-panel::before {
   content: '';
   position: absolute;
-  top: -7px;
-  right: 24px;
-  width: 14px;
-  height: 14px;
+  top: -9px;
+  right: 17px;
+  width: 26px;
+  height: 9px;
+  background: var(--divider);
+  clip-path: path('M 0 9 C 5 9, 9 0, 13 0 C 17 0, 21 9, 26 9 Z');
+}
+
+/* Arrow fill (on top) */
+#settings-panel::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 18px;
+  width: 24px;
+  height: 8px;
   background: var(--bg-secondary);
-  border-top: 1px solid var(--divider);
-  border-left: 1px solid var(--divider);
-  transform: rotate(45deg);
+  clip-path: path('M 0 8 C 4 8, 8 0, 12 0 C 16 0, 20 8, 24 8 Z');
   z-index: 1;
+  pointer-events: none;
 }
 
 @keyframes panelIn {
@@ -429,28 +440,28 @@ body.has-window-controls #toolbar-controls {
 }
 
 .panel-header {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .panel-divider {
   height: 1px;
   background: var(--divider);
-  margin: 12px 0;
+  margin: 8px 0;
 }
 
 .font-row {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.1s ease;
-  margin-bottom: 1px;
+  margin-bottom: 0;
 }
 
 .font-row:hover {
@@ -466,7 +477,7 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-name {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 400;
   color: var(--text-secondary);
 }
@@ -477,9 +488,10 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-category {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-muted);
-  margin-top: 0;
+  margin-top: -1px;
+  line-height: 1.2;
 }
 
 .font-row-check {
@@ -487,10 +499,15 @@ body.has-window-controls #toolbar-controls {
   flex-shrink: 0;
 }
 
+.font-row-check svg {
+  width: 10px;
+  height: 10px;
+}
+
 #font-size-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .size-label {
@@ -499,11 +516,11 @@ body.has-window-controls #toolbar-controls {
 }
 
 .size-small {
-  font-size: 9px;
+  font-size: 8px;
 }
 
 .size-large {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 #font-size-slider {
@@ -534,9 +551,9 @@ body.has-window-controls #toolbar-controls {
 
 #font-size-value {
   text-align: center;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* ── Welcome Modal ─────────────────────────────────────────────────── */
