@@ -392,11 +392,11 @@ body.has-window-controls #toolbar-controls {
   position: absolute;
   top: 62px;
   right: 60px;
-  width: 190px;
+  width: 210px;
   background: var(--bg-secondary);
   border: 1px solid var(--divider);
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 12px;
   z-index: 50;
   box-shadow: 0 8px 32px var(--shadow-modal);
   animation: panelIn 0.15s ease;
@@ -441,28 +441,28 @@ body.has-window-controls #toolbar-controls {
 }
 
 .panel-header {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .panel-divider {
   height: 1px;
   background: var(--divider);
-  margin: 8px 0;
+  margin: 12px 0;
 }
 
 .font-row {
   display: flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 5px 8px;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.1s ease;
-  margin-bottom: 0;
+  margin-bottom: 1px;
 }
 
 .font-row:hover {
@@ -478,7 +478,7 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-name {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--text-secondary);
 }
@@ -489,10 +489,10 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-category {
-  font-size: 8px;
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: -1px;
-  line-height: 1.2;
+  margin-top: 0;
+  line-height: 1.3;
 }
 
 .font-row-check {
@@ -501,14 +501,14 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-check svg {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 #font-size-control {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .size-label {
@@ -517,27 +517,29 @@ body.has-window-controls #toolbar-controls {
 }
 
 .size-small {
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .size-large {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 #font-size-slider {
   flex: 1;
   -webkit-appearance: none;
   appearance: none;
-  height: 14px;
+  height: 16px;
   background: transparent;
   outline: none;
   cursor: pointer;
 }
 
 #font-size-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--bg-tertiary);
+  height: 8px;
+  border-radius: 0;
+  background:
+    linear-gradient(var(--bg-tertiary), var(--bg-tertiary)) 0 center / 100% 2px no-repeat,
+    linear-gradient(to right, var(--divider) 1px, transparent 1px) 0 center / calc(100% / 16) 6px repeat-x;
 }
 
 #font-size-slider::-webkit-slider-thumb {
@@ -548,6 +550,7 @@ body.has-window-controls #toolbar-controls {
   border-radius: 50%;
   background: var(--text-primary);
   cursor: pointer;
+  margin-top: -3px;
   transition: transform 0.1s ease;
 }
 
@@ -557,9 +560,9 @@ body.has-window-controls #toolbar-controls {
 
 #font-size-value {
   text-align: center;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* ── Welcome Modal ─────────────────────────────────────────────────── */
