@@ -453,6 +453,11 @@ window.electronAPI.onBeforeClose(() => {
   handleBeforeClose(state, editorView);
 });
 
+window.electronAPI.onFontSizeShortcut((key: string) => {
+  if (key === '-') state.setFontSize(state.fontSize - 1);
+  if (key === '=' || key === '+') state.setFontSize(state.fontSize + 1);
+});
+
 // ── Drag and drop ─────────────────────────────────────────────────────
 
 document.addEventListener('dragover', (e) => {

@@ -49,7 +49,6 @@ function buildTheme(isDark: boolean): Extension {
       '&': {
         backgroundColor: bg,
         color: fg,
-        fontSize: '16px',
         flex: '1',
       },
       '.cm-content': {
