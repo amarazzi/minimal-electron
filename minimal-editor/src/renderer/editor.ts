@@ -354,107 +354,104 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
   const closing = endMarker || marker;
   const { from, to } = view.state.selection.main;
 
-  if (from < to) {
-    const selected = view.state.sliceDoc(from, to);
-
-    // Check if already wrapped (selection includes markers) → unwrap
-    if (!endMarker && selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2) {
-      const inner = selected.slice(marker.length, -marker.length);
-      view.dispatch({
-        changes: { from, to, insert: inner },
-        selection: { anchor: from, head: from + inner.length },
-      });
-      return true;
-    }
-
-    // Check if markers surround the selection (WYSIWYG – markers hidden but in document)
-    if (!endMarker) {
-      const beforeFrom = Math.max(0, from - marker.length);
-      const afterTo = Math.min(to + closing.length, view.state.doc.length);
-      const before = view.state.sliceDoc(beforeFrom, from);
-      const after = view.state.sliceDoc(to, afterTo);
-      if (before === marker && after === closing) {
-        view.dispatch({
-          changes: [
-            { from: beforeFrom, to: from, insert: '' },
-            { from: to, to: afterTo, insert: '' },
-          ],
-        });
-        return true;
-      }
-    }
-
-    // Multi-paragraph: wrap/unwrap each paragraph individually
-    if (!endMarker && selected.includes('\n\n')) {
-      const parts = selected.split(/(\n\n+)/);
-
-      // Strip one level of markers from text (ignoring surrounding whitespace)
-      function stripMarkers(text: string): { stripped: string; had: boolean } {
-        let s = text.replace(/\n+$/, '').replace(/^\n+/, '');
-        let had = false;
-        if (s.startsWith(marker)) { s = s.slice(marker.length); had = true; }
-        if (s.endsWith(closing)) { s = s.slice(0, -closing.length); had = true; }
-        return { stripped: s, had };
-      }
-
-      // Check if surrounding markers exist (hidden by WYSIWYG)
-      const beforeFrom = Math.max(0, from - marker.length);
-      const afterTo = Math.min(to + closing.length, view.state.doc.length);
-      const hasSurrounding = view.state.sliceDoc(beforeFrom, from) === marker &&
-                             view.state.sliceDoc(to, afterTo) === closing;
-
-      const contentParts = parts.filter(p => !/^\n\n+$/.test(p) && p.trim());
-      const allHadMarkers = hasSurrounding && contentParts.length > 0 &&
-        contentParts.every(p => stripMarkers(p).had);
-
-      if (allHadMarkers) {
-        // Unwrap: strip all inter-paragraph markers + remove surrounding markers
-        const result = parts.map(p => {
-          if (/^\n\n+$/.test(p) || !p.trim()) return p;
-          return stripMarkers(p).stripped;
-        }).join('');
-        view.dispatch({
-          changes: { from: beforeFrom, to: afterTo, insert: result },
-        });
-        return true;
-      }
-
-      // Wrap: add markers to each paragraph (strip existing first to avoid double)
-      // Ensure closing marker is right after text, not after trailing newlines
-      let result = '';
-      for (const part of parts) {
-        if (/^\n\n+$/.test(part)) {
-          result += part;
-        } else if (part.trim()) {
-          const trailingMatch = part.match(/(\n+)$/);
-          const trailing = trailingMatch ? trailingMatch[1] : '';
-          const content = trailing ? part.slice(0, -trailing.length) : part;
-          const clean = stripMarkers(content).stripped;
-          result += marker + clean + closing + trailing;
-        } else {
-          result += part;
-        }
-      }
-      view.dispatch({
-        changes: { from, to, insert: result },
-        selection: { anchor: from, head: from + result.length },
-      });
-      return true;
-    }
-
-    const wrapped = marker + selected + closing;
+  // No selection → insert markers and place cursor between
+  if (from >= to) {
     view.dispatch({
-      changes: { from, to, insert: wrapped },
-      selection: { anchor: from + marker.length, head: from + marker.length + selected.length },
-    });
-  } else {
-    // No selection — insert markers and place cursor between
-    const insertion = marker + closing;
-    view.dispatch({
-      changes: { from, to: from, insert: insertion },
+      changes: { from, to: from, insert: marker + closing },
       selection: { anchor: from + marker.length },
     });
+    return true;
   }
+
+  // Try syntax-tree–based unwrap for symmetric markers (bold, italic, code, underline)
+  if (!endMarker) {
+    const nodeType = (marker === '**' || marker === '__') ? 'StrongEmphasis'
+                   : marker === '*' ? 'Emphasis'
+                   : marker === '`' ? 'InlineCode' : '';
+    const markName = marker === '`' ? 'CodeMark' : 'EmphasisMark';
+
+    if (nodeType) {
+      const tree = syntaxTree(view.state);
+      const fmtNodes: { from: number; to: number }[] = [];
+      tree.iterate({ from, to, enter(node) {
+        if (node.name === nodeType && node.to > from && node.from < to) {
+          fmtNodes.push({ from: node.from, to: node.to });
+        }
+      }});
+
+      if (fmtNodes.length > 0) {
+        fmtNodes.sort((a, b) => a.from - b.from);
+        // Check that all non-whitespace text in selection is covered by formatting nodes
+        let covered = true;
+        let pos = from;
+        for (const fn of fmtNodes) {
+          if (fn.from > pos) {
+            const gap = view.state.sliceDoc(pos, Math.min(fn.from, to));
+            if (gap.replace(/\s/g, '').length > 0) { covered = false; break; }
+          }
+          pos = Math.max(pos, fn.to);
+        }
+        if (covered && pos < to) {
+          const gap = view.state.sliceDoc(pos, to);
+          if (gap.replace(/\s/g, '').length > 0) covered = false;
+        }
+
+        if (covered) {
+          // UNWRAP: remove all matching marker nodes from these formatting ranges
+          const changes: { from: number; to: number; insert: string }[] = [];
+          for (const fn of fmtNodes) {
+            tree.iterate({ from: fn.from, to: fn.to, enter(child) {
+              if (child.name === markName) {
+                const text = view.state.sliceDoc(child.from, child.to);
+                if (text === marker || text === closing) {
+                  changes.push({ from: child.from, to: child.to, insert: '' });
+                }
+              }
+            }});
+          }
+          changes.sort((a, b) => a.from - b.from);
+          if (changes.length > 0) {
+            view.dispatch({ changes });
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // WRAP the selection
+  const selected = view.state.sliceDoc(from, to);
+
+  // Multi-paragraph: wrap each paragraph individually so the parser recognises them
+  if (!endMarker && selected.includes('\n\n')) {
+    const parts = selected.split(/(\n\n+)/);
+    let result = '';
+    for (const part of parts) {
+      if (/^\n\n+$/.test(part)) {
+        result += part;
+      } else if (part.trim()) {
+        // Keep closing marker right after text, not after trailing newlines
+        const trailingMatch = part.match(/(\n+)$/);
+        const trailing = trailingMatch ? trailingMatch[1] : '';
+        const content = trailing ? part.slice(0, -trailing.length) : part;
+        result += marker + content + closing + trailing;
+      } else {
+        result += part;
+      }
+    }
+    view.dispatch({
+      changes: { from, to, insert: result },
+      selection: { anchor: from, head: from + result.length },
+    });
+    return true;
+  }
+
+  // Single selection wrap
+  const wrapped = marker + selected + closing;
+  view.dispatch({
+    changes: { from, to, insert: wrapped },
+    selection: { anchor: from + marker.length, head: from + marker.length + selected.length },
+  });
   return true;
 }
 
