@@ -480,6 +480,13 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
 
 let activeLinkPrompt: HTMLElement | null = null;
 
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) return trimmed; // already has protocol
+  return 'https://' + trimmed;
+}
+
 function dismissLinkPrompt(): void {
   if (activeLinkPrompt) {
     activeLinkPrompt.remove();
@@ -571,7 +578,7 @@ function showLinkPrompt(view: EditorView): boolean {
 
   const isEditing = hasExistingLink;
   const commit = () => {
-    const url = input.value.trim();
+    const url = normalizeUrl(input.value);
     if (!url) {
       // If editing existing link and cleared URL, remove the link
       if (isEditing) {
@@ -704,7 +711,7 @@ function handleLinkClick(view: EditorView, event: MouseEvent): boolean {
   if (url && linkTextFrom >= 0 && linkTextTo > linkTextFrom && pos >= linkTextFrom && pos <= linkTextTo) {
     const api = (window as any).electronAPI;
     if (api?.openExternal) {
-      api.openExternal(url);
+      api.openExternal(normalizeUrl(url));
     }
     event.preventDefault();
     return true;
