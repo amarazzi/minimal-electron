@@ -519,8 +519,8 @@ function buildFormattingKeymap(state: AppState) {
 export function createEditor(container: HTMLElement, state: AppState): EditorView {
   const extensions: Extension[] = [
     history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
     buildFormattingKeymap(state),
+    keymap.of([...defaultKeymap, ...historyKeymap]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     markdownDecoPlugin,
     EditorView.lineWrapping,
