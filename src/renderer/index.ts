@@ -115,6 +115,38 @@ function renderTabs(): void {
     });
     tabEl.appendChild(closeBtn);
 
+    // Double-click to rename tab
+    titleEl.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      const input = document.createElement('input');
+      input.className = 'tab-title-input';
+      input.value = tab.title;
+      input.type = 'text';
+      titleEl.replaceWith(input);
+      input.focus();
+      input.select();
+
+      let committed = false;
+      const commit = () => {
+        if (committed) return;
+        committed = true;
+        const newTitle = input.value.trim() || 'Untitled';
+        state.renameTab(tab.id, newTitle);
+      };
+      const cancel = () => {
+        if (committed) return;
+        committed = true;
+        renderTabs();
+      };
+
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (ke) => {
+        if (ke.key === 'Enter') { ke.preventDefault(); commit(); }
+        if (ke.key === 'Escape') { ke.preventDefault(); cancel(); }
+        ke.stopPropagation();
+      });
+    });
+
     tabEl.addEventListener('click', () => {
       state.switchTab(tab.id);
     });

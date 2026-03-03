@@ -6,6 +6,7 @@ export interface Tab {
   content: string;
   filePath: string | null;
   savedContent: string;
+  customTitle?: boolean;
 }
 
 export type EditorFontId = 'courier-new' | 'merriweather' | 'inter' | 'system-sans';
@@ -168,7 +169,7 @@ export class AppState {
     tab.content = content;
 
     // Auto-derive title for unsaved documents
-    if (!tab.filePath) {
+    if (!tab.filePath && !tab.customTitle) {
       const firstLine = content.split('\n')[0] || '';
       let clean = firstLine.replace(/^#+\s*/, '').trim();
       if (!clean) {
@@ -246,6 +247,14 @@ export class AppState {
   setDontShowWelcome(value: boolean): void {
     this.dontShowWelcome = value;
     localStorage.setItem('dontShowWelcome', String(value));
+  }
+
+  renameTab(tabId: string, newTitle: string): void {
+    const tab = this.tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    tab.title = newTitle || 'Untitled';
+    tab.customTitle = true;
+    this.emit('tabs-changed');
   }
 
   toggleSettings(): void {

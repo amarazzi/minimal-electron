@@ -172,6 +172,8 @@ function buildDecorations(view: EditorView): DecorationSet {
   const tree = syntaxTree(view.state);
   const doc = view.state.doc;
 
+  const hideDeco = Decoration.replace({});
+
   tree.iterate({
     enter(node) {
       const { from, to, name } = node;
@@ -185,11 +187,17 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: headingDeco });
       }
 
-      // Heading markers (# symbols)
+      // Heading markers (# symbols + trailing space) – always hide
       if (name === 'HeaderMark') {
-        // Include the space after the marker
-        const afterMark = Math.min(to + 1, doc.length);
-        decorations.push({ from, to: afterMark, deco: markerDeco });
+        const markText = doc.sliceString(from, to);
+        if (markText[0] === '#') {
+          let afterMark = to;
+          if (to < doc.length && doc.sliceString(to, to + 1) === ' ') afterMark = to + 1;
+          decorations.push({ from, to: afterMark, deco: hideDeco });
+        } else {
+          // Setext underlines – keep muted
+          decorations.push({ from, to, deco: markerDeco });
+        }
       }
 
       // Bold (**text**)
@@ -202,9 +210,9 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: italicDeco });
       }
 
-      // Emphasis markers (* or **)
+      // Emphasis markers (* or **) – always hide
       if (name === 'EmphasisMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        decorations.push({ from, to, deco: hideDeco });
       }
 
       // Inline code
@@ -212,9 +220,14 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: codeDeco });
       }
 
-      // Code marks (backticks)
+      // Code marks (backticks) – hide inline, keep fenced muted
       if (name === 'CodeMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        const text = doc.sliceString(from, to);
+        if (text.length >= 3) {
+          decorations.push({ from, to, deco: markerDeco });
+        } else {
+          decorations.push({ from, to, deco: hideDeco });
+        }
       }
 
       // Fenced code blocks
@@ -226,22 +239,17 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: markerDeco });
       }
 
-      // Links [text](url)
-      if (name === 'Link') {
-        // We'll style sub-parts individually
-      }
+      // Links [text](url) – always hide syntax
       if (name === 'LinkMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        decorations.push({ from, to, deco: hideDeco });
       }
-      // Link label text gets link color
       if (name === 'LinkLabel') {
-        // The content between [ and ] - skip the brackets themselves
         if (to - from > 2) {
           decorations.push({ from: from + 1, to: to - 1, deco: linkTextDeco });
         }
       }
       if (name === 'URL') {
-        decorations.push({ from, to, deco: linkUrlDeco });
+        decorations.push({ from, to, deco: hideDeco });
       }
 
       // Blockquotes
@@ -249,7 +257,9 @@ function buildDecorations(view: EditorView): DecorationSet {
         decorations.push({ from, to, deco: blockquoteDeco });
       }
       if (name === 'QuoteMark') {
-        decorations.push({ from, to, deco: markerDeco });
+        let end = to;
+        if (end < doc.length && doc.sliceString(end, end + 1) === ' ') end++;
+        decorations.push({ from, to: end, deco: hideDeco });
       }
 
       // List markers
@@ -264,7 +274,6 @@ function buildDecorations(view: EditorView): DecorationSet {
     },
   });
 
-  // Use Decoration.set with sort flag to handle ordering
   return Decoration.set(
     decorations.map((d) => d.deco.range(d.from, d.to)),
     true
@@ -280,7 +289,8 @@ const markdownDecoPlugin = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.startState.facet(EditorView.darkTheme) !== update.state.facet(EditorView.darkTheme)) {
+      if (update.docChanged || update.viewportChanged ||
+          update.startState.facet(EditorView.darkTheme) !== update.state.facet(EditorView.darkTheme)) {
         this.decorations = buildDecorations(update.view);
       }
     }
@@ -343,32 +353,104 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
   const closing = endMarker || marker;
   const { from, to } = view.state.selection.main;
 
-  if (from < to) {
-    const selected = view.state.sliceDoc(from, to);
-
-    // Check if already wrapped → unwrap
-    if (!endMarker && selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2) {
-      const inner = selected.slice(marker.length, -marker.length);
-      view.dispatch({
-        changes: { from, to, insert: inner },
-        selection: { anchor: from, head: from + inner.length },
-      });
-      return true;
-    }
-
-    const wrapped = marker + selected + closing;
+  // No selection → insert markers and place cursor between
+  if (from >= to) {
     view.dispatch({
-      changes: { from, to, insert: wrapped },
-      selection: { anchor: from + marker.length, head: from + marker.length + selected.length },
-    });
-  } else {
-    // No selection — insert markers and place cursor between
-    const insertion = marker + closing;
-    view.dispatch({
-      changes: { from, to: from, insert: insertion },
+      changes: { from, to: from, insert: marker + closing },
       selection: { anchor: from + marker.length },
     });
+    return true;
   }
+
+  // Try syntax-tree–based unwrap for symmetric markers (bold, italic, code, underline)
+  if (!endMarker) {
+    const nodeType = (marker === '**' || marker === '__') ? 'StrongEmphasis'
+                   : marker === '*' ? 'Emphasis'
+                   : marker === '`' ? 'InlineCode' : '';
+    const markName = marker === '`' ? 'CodeMark' : 'EmphasisMark';
+
+    if (nodeType) {
+      const tree = syntaxTree(view.state);
+      const fmtNodes: { from: number; to: number }[] = [];
+      tree.iterate({ from, to, enter(node) {
+        if (node.name === nodeType && node.to > from && node.from < to) {
+          fmtNodes.push({ from: node.from, to: node.to });
+        }
+      }});
+
+      if (fmtNodes.length > 0) {
+        fmtNodes.sort((a, b) => a.from - b.from);
+        // Check that all non-whitespace text in selection is covered by formatting nodes
+        let covered = true;
+        let pos = from;
+        for (const fn of fmtNodes) {
+          if (fn.from > pos) {
+            const gap = view.state.sliceDoc(pos, Math.min(fn.from, to));
+            if (gap.replace(/\s/g, '').length > 0) { covered = false; break; }
+          }
+          pos = Math.max(pos, fn.to);
+        }
+        if (covered && pos < to) {
+          const gap = view.state.sliceDoc(pos, to);
+          if (gap.replace(/\s/g, '').length > 0) covered = false;
+        }
+
+        if (covered) {
+          // UNWRAP: remove all matching marker nodes from these formatting ranges
+          const changes: { from: number; to: number; insert: string }[] = [];
+          for (const fn of fmtNodes) {
+            tree.iterate({ from: fn.from, to: fn.to, enter(child) {
+              if (child.name === markName) {
+                const text = view.state.sliceDoc(child.from, child.to);
+                if (text === marker || text === closing) {
+                  changes.push({ from: child.from, to: child.to, insert: '' });
+                }
+              }
+            }});
+          }
+          changes.sort((a, b) => a.from - b.from);
+          if (changes.length > 0) {
+            view.dispatch({ changes });
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // WRAP the selection
+  const selected = view.state.sliceDoc(from, to);
+
+  // Multi-paragraph: wrap each paragraph individually so the parser recognises them
+  if (!endMarker && selected.includes('\n\n')) {
+    const parts = selected.split(/(\n\n+)/);
+    let result = '';
+    for (const part of parts) {
+      if (/^\n\n+$/.test(part)) {
+        result += part;
+      } else if (part.trim()) {
+        // Keep closing marker right after text, not after trailing newlines
+        const trailingMatch = part.match(/(\n+)$/);
+        const trailing = trailingMatch ? trailingMatch[1] : '';
+        const content = trailing ? part.slice(0, -trailing.length) : part;
+        result += marker + content + closing + trailing;
+      } else {
+        result += part;
+      }
+    }
+    view.dispatch({
+      changes: { from, to, insert: result },
+      selection: { anchor: from, head: from + result.length },
+    });
+    return true;
+  }
+
+  // Single selection wrap
+  const wrapped = marker + selected + closing;
+  view.dispatch({
+    changes: { from, to, insert: wrapped },
+    selection: { anchor: from + marker.length, head: from + marker.length + selected.length },
+  });
   return true;
 }
 
@@ -430,37 +512,54 @@ function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
 // ── Paragraph navigation (standard macOS Option+Arrow Up/Down) ────────
 
 function findParagraphBoundary(doc: import('@codemirror/state').Text, pos: number, dir: -1 | 1): number {
-  let line = doc.lineAt(pos);
-  const isBlank = (l: import('@codemirror/state').Line) => l.text.trim().length === 0;
+  const isBlank = (lineNum: number) => doc.line(lineNum).text.trim().length === 0;
+  const line = doc.lineAt(pos);
 
-  // Skip current line
-  let lineNum = line.number + dir;
-
-  // If we're on a non-blank line, skip past remaining non-blank lines, then skip blank lines
-  // If we're on a blank line, skip past remaining blank lines, then skip non-blank lines
-  const startOnBlank = isBlank(line);
-
-  // Phase 1: skip lines of the same type (blank/non-blank)
-  while (lineNum >= 1 && lineNum <= doc.lines) {
-    const l = doc.line(lineNum);
-    if (isBlank(l) !== startOnBlank) break;
-    lineNum += dir;
-  }
-
-  // Phase 2: if we started on non-blank, we're now on blank lines — skip them too
-  if (!startOnBlank) {
-    while (lineNum >= 1 && lineNum <= doc.lines) {
-      const l = doc.line(lineNum);
-      if (!isBlank(l)) break;
-      lineNum += dir;
+  if (dir === -1) {
+    // Moving up
+    if (isBlank(line.number)) {
+      // On blank line: skip blanks up, then find start of that paragraph
+      let ln = line.number - 1;
+      while (ln >= 1 && isBlank(ln)) ln--;
+      while (ln >= 1 && !isBlank(ln)) ln--;
+      return ln < 1 ? 0 : doc.line(ln + 1).from;
     }
+    // On a non-blank line: find start of current paragraph
+    let paraStart = line.number;
+    while (paraStart > 1 && !isBlank(paraStart - 1)) paraStart--;
+    const paraStartPos = doc.line(paraStart).from;
+    if (pos > paraStartPos) {
+      // Not at start → go to start of current paragraph
+      return paraStartPos;
+    }
+    // Already at start → go to start of previous paragraph
+    let ln = paraStart - 1;
+    while (ln >= 1 && isBlank(ln)) ln--;
+    while (ln >= 1 && !isBlank(ln)) ln--;
+    return ln < 1 ? 0 : doc.line(ln + 1).from;
+  } else {
+    // Moving down
+    if (isBlank(line.number)) {
+      // On blank line: skip blanks down, then find end of that paragraph
+      let ln = line.number + 1;
+      while (ln <= doc.lines && isBlank(ln)) ln++;
+      while (ln <= doc.lines && !isBlank(ln)) ln++;
+      return ln > doc.lines ? doc.length : doc.line(ln - 1).to;
+    }
+    // On a non-blank line: find end of current paragraph
+    let paraEnd = line.number;
+    while (paraEnd < doc.lines && !isBlank(paraEnd + 1)) paraEnd++;
+    const paraEndPos = doc.line(paraEnd).to;
+    if (pos < paraEndPos) {
+      // Not at end → go to end of current paragraph
+      return paraEndPos;
+    }
+    // Already at end → go to end of next paragraph
+    let ln = paraEnd + 1;
+    while (ln <= doc.lines && isBlank(ln)) ln++;
+    while (ln <= doc.lines && !isBlank(ln)) ln++;
+    return ln > doc.lines ? doc.length : doc.line(ln - 1).to;
   }
-
-  // Clamp and return position
-  if (lineNum < 1) return 0;
-  if (lineNum > doc.lines) return doc.length;
-  const targetLine = doc.line(lineNum);
-  return dir === -1 ? targetLine.from : targetLine.to;
 }
 
 function cursorParagraphUp(view: EditorView): boolean {
