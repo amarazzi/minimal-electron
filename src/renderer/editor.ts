@@ -7,6 +7,7 @@ import {
   Decoration,
   DecorationSet,
   WidgetType,
+  placeholder as cmPlaceholder,
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -539,6 +540,7 @@ export function createEditor(container: HTMLElement, state: AppState): EditorVie
         state.updateContent(update.state.doc.toString());
       }
     }),
+    cmPlaceholder('Start writing...'),
   ];
 
   const view = new EditorView({

@@ -95,9 +95,14 @@ function renderTabs(): void {
 
     const titleEl = document.createElement('span');
     titleEl.className = 'tab-title';
-    const isUnsaved = tab.content !== tab.savedContent;
-    titleEl.textContent = tab.title + (isUnsaved ? ' •' : '');
+    titleEl.textContent = tab.title;
     tabEl.appendChild(titleEl);
+
+    const dot = document.createElement('span');
+    dot.className = 'tab-save-dot';
+    const isUnsaved = tab.content !== tab.savedContent;
+    if (!isUnsaved) dot.classList.add('saved');
+    tabEl.appendChild(dot);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'tab-close';
@@ -155,9 +160,14 @@ function updateStatusBar(): void {
   charCountEl.textContent = `${cc} character${cc !== 1 ? 's' : ''}`;
 }
 
+
 updateStatusBar();
-state.on('content-changed', updateStatusBar);
+state.on('content-changed', () => {
+  updateStatusBar();
+  renderTabs();
+});
 state.on('active-tab-changed', updateStatusBar);
+state.on('save-status-changed', renderTabs);
 
 // ── Settings Panel ────────────────────────────────────────────────────
 

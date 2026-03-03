@@ -8,7 +8,7 @@ export interface Tab {
   savedContent: string;
 }
 
-export type EditorFontId = 'courier-new' | 'merriweather' | 'inter' | 'system-sans';
+export type EditorFontId = 'courier-new' | 'merriweather' | 'inter' | 'system-sans' | 'ia-writer-duo' | 'georgia' | 'lora';
 
 export interface EditorFontInfo {
   id: EditorFontId;
@@ -19,7 +19,10 @@ export interface EditorFontInfo {
 
 export const FONT_OPTIONS: EditorFontInfo[] = [
   { id: 'courier-new', displayName: 'Courier New', category: 'Mono, classic', cssFontFamily: '"Courier New", "Courier", monospace' },
+  { id: 'ia-writer-duo', displayName: 'Duo', category: 'Mono, modern', cssFontFamily: '"iA Writer Duo", "Courier New", monospace' },
   { id: 'merriweather', displayName: 'Merriweather', category: 'Serif, literary', cssFontFamily: '"Merriweather", "Georgia", serif' },
+  { id: 'georgia', displayName: 'Georgia', category: 'Serif, classic', cssFontFamily: 'Georgia, "Times New Roman", serif' },
+  { id: 'lora', displayName: 'Lora', category: 'Serif, elegant', cssFontFamily: '"Lora", Georgia, serif' },
   { id: 'inter', displayName: 'Inter', category: 'Sans, clean', cssFontFamily: '"Inter", "Helvetica Neue", sans-serif' },
   { id: 'system-sans', displayName: 'System Sans', category: 'Sans, native', cssFontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
 ];
@@ -31,7 +34,8 @@ export type AppEvent =
   | 'theme-changed'
   | 'font-changed'
   | 'welcome-changed'
-  | 'settings-panel-changed';
+  | 'settings-panel-changed'
+  | 'save-status-changed';
 
 // ── App State ─────────────────────────────────────────────────────────
 
@@ -211,6 +215,7 @@ export class AppState {
     }
     tab.savedContent = tab.content;
     this.emit('tabs-changed');
+    this.emit('save-status-changed');
   }
 
   // ── Settings ────────────────────────────────────────────────────────
