@@ -675,6 +675,10 @@ function toggleLinePrefix(view: EditorView, prefix: string): boolean {
 // ── Click-to-open links ───────────────────────────────────────────────
 
 function handleLinkClick(view: EditorView, event: MouseEvent): boolean {
+  // Only open on Cmd+click (Mac) or Ctrl+click (Windows/Linux)
+  const isMac = navigator.platform.includes('Mac');
+  if (!(isMac ? event.metaKey : event.ctrlKey)) return false;
+
   const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
   if (pos === null) return false;
 
