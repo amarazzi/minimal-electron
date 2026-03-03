@@ -563,16 +563,31 @@ body.has-window-controls #toolbar-controls {
 
 #settings-panel {
   position: absolute;
-  top: 56px;
+  top: 62px;
   right: 60px;
-  width: 260px;
+  width: 220px;
   background: var(--bg-elevated);
   border: 1px solid var(--divider-bold);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   z-index: 50;
   box-shadow: var(--shadow-lg);
   animation: panelIn 0.18s var(--transition-fn);
+}
+
+/* Arrow / caret pointing up toward the Aa button */
+#settings-panel::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 24px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--divider-bold);
+  border-left: 1px solid var(--divider-bold);
+  transform: rotate(45deg);
+  z-index: 1;
 }
 
 @keyframes panelIn {
@@ -587,28 +602,28 @@ body.has-window-controls #toolbar-controls {
 }
 
 .panel-header {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .panel-divider {
   height: 1px;
   background: var(--divider);
-  margin: var(--space-4) 0;
+  margin: var(--space-3) 0;
 }
 
 .font-row {
   display: flex;
   align-items: center;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s var(--transition-fn);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .font-row:hover {
@@ -624,7 +639,7 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-name {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 400;
   color: var(--text-secondary);
 }
@@ -635,9 +650,9 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-category {
-  font-size: var(--text-xs);
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 .font-row-check {
@@ -648,7 +663,7 @@ body.has-window-controls #toolbar-controls {
 #font-size-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .size-label {
@@ -657,11 +672,11 @@ body.has-window-controls #toolbar-controls {
 }
 
 .size-small {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .size-large {
-  font-size: 18px;
+  font-size: 15px;
 }
 
 #font-size-slider {
@@ -678,8 +693,8 @@ body.has-window-controls #toolbar-controls {
 #font-size-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: white;
   border: 0.5px solid rgba(0, 0, 0, 0.15);
@@ -694,9 +709,9 @@ body.has-window-controls #toolbar-controls {
 
 #font-size-value {
   text-align: center;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 /* ── Welcome Modal ─────────────────────────────────────────────────── */

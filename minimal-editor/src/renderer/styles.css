@@ -390,16 +390,31 @@ body.has-window-controls #toolbar-controls {
 
 #settings-panel {
   position: absolute;
-  top: 56px;
+  top: 62px;
   right: 60px;
-  width: 260px;
+  width: 220px;
   background: var(--bg-secondary);
   border: 1px solid var(--divider);
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 6px;
+  padding: 12px;
   z-index: 50;
   box-shadow: 0 8px 32px var(--shadow-modal);
   animation: panelIn 0.15s ease;
+}
+
+/* Arrow / caret pointing up toward the Aa button */
+#settings-panel::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 24px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--divider);
+  border-left: 1px solid var(--divider);
+  transform: rotate(45deg);
+  z-index: 1;
 }
 
 @keyframes panelIn {
@@ -414,28 +429,28 @@ body.has-window-controls #toolbar-controls {
 }
 
 .panel-header {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .panel-divider {
   height: 1px;
   background: var(--divider);
-  margin: 14px 0;
+  margin: 12px 0;
 }
 
 .font-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.1s ease;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .font-row:hover {
@@ -451,7 +466,7 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-name {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-secondary);
 }
@@ -462,9 +477,9 @@ body.has-window-controls #toolbar-controls {
 }
 
 .font-row-category {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 .font-row-check {
@@ -475,7 +490,7 @@ body.has-window-controls #toolbar-controls {
 #font-size-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .size-label {
@@ -484,11 +499,11 @@ body.has-window-controls #toolbar-controls {
 }
 
 .size-small {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .size-large {
-  font-size: 18px;
+  font-size: 15px;
 }
 
 #font-size-slider {
@@ -519,9 +534,9 @@ body.has-window-controls #toolbar-controls {
 
 #font-size-value {
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 /* ── Welcome Modal ─────────────────────────────────────────────────── */
