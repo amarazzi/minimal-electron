@@ -22,6 +22,7 @@ declare global {
       minimizeWindow(): void;
       maximizeWindow(): void;
       onBeforeClose(callback: () => void): void;
+      onFontSizeShortcut(callback: (key: string) => void): void;
       getFilePathFromDrop(file: File): string;
       platform: string;
     };
@@ -286,7 +287,6 @@ const shortcuts = [
     section: 'File',
     items: [
       { keys: 'T', action: 'New tab' },
-      { keys: 'N', action: 'New tab' },
       { keys: 'W', action: 'Close tab' },
       { keys: 'S', action: 'Save' },
       { keys: '⇧S', action: 'Save as' },
@@ -427,6 +427,14 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     closeTabWithSaveCheck(state, state.activeTabId, editorView);
   }
+  if (mod && e.key === '-') {
+    e.preventDefault();
+    state.setFontSize(state.fontSize - 1);
+  }
+  if (mod && (e.key === '=' || e.key === '+')) {
+    e.preventDefault();
+    state.setFontSize(state.fontSize + 1);
+  }
   // Escape closes modals
   if (e.key === 'Escape') {
     if (state.showWelcome) {
@@ -444,6 +452,11 @@ document.addEventListener('keydown', (e) => {
 
 window.electronAPI.onBeforeClose(() => {
   handleBeforeClose(state, editorView);
+});
+
+window.electronAPI.onFontSizeShortcut((key: string) => {
+  if (key === '-') state.setFontSize(state.fontSize - 1);
+  if (key === '=' || key === '+') state.setFontSize(state.fontSize + 1);
 });
 
 // ── Drag and drop ─────────────────────────────────────────────────────

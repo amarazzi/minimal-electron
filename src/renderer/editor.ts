@@ -50,7 +50,6 @@ function buildTheme(isDark: boolean): Extension {
       '&': {
         backgroundColor: bg,
         color: fg,
-        fontSize: '16px',
         flex: '1',
       },
       '.cm-content': {
@@ -553,10 +552,6 @@ function buildFormattingKeymap(state: AppState) {
       run: () => { state.selectNextTab(); return true; },
     },
     // File operations
-    {
-      key: 'Mod-n',
-      run: () => { state.addTab(); return true; },
-    },
     {
       key: 'Mod-t',
       run: () => { state.addTab(); return true; },

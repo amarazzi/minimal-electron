@@ -17,6 +17,7 @@ export interface ElectronAPI {
 
   // Events from main
   onBeforeClose(callback: () => void): void;
+  onFontSizeShortcut(callback: (key: string) => void): void;
 
   // Utilities
   getFilePathFromDrop(file: File): string;
@@ -46,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Events from main
   onBeforeClose: (callback: () => void) => {
     ipcRenderer.on('app:before-close', () => callback());
+  },
+  onFontSizeShortcut: (callback: (key: string) => void) => {
+    ipcRenderer.on('font-size-shortcut', (_event, key: string) => callback(key));
   },
 
   // Utilities

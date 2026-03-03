@@ -32,6 +32,17 @@ function createWindow(): void {
     mainWindow?.show();
   });
 
+  // Intercept Cmd/Ctrl +/- to prevent Chromium zoom and forward to renderer for font size
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const mod = process.platform === 'darwin' ? input.meta : input.control;
+    if (mod && !input.shift && !input.alt) {
+      if (input.key === '-' || input.key === '=' || input.key === '+') {
+        event.preventDefault();
+        mainWindow?.webContents.send('font-size-shortcut', input.key);
+      }
+    }
+  });
+
   mainWindow.on('close', (e) => {
     if (!isForceClosing) {
       e.preventDefault();
