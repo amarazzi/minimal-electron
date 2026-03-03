@@ -495,42 +495,80 @@ function dismissLinkPrompt(): void {
   }
 }
 
+/** Find Link node info at a given document position. Returns null if pos is not inside a Link. */
+function findLinkAt(view: EditorView, pos: number): {
+  linkFrom: number; linkTo: number;
+  textFrom: number; textTo: number;
+  urlFrom: number; urlTo: number;
+} | null {
+  const tree = syntaxTree(view.state);
+  let result: ReturnType<typeof findLinkAt> = null;
+  tree.iterate({ from: pos, to: pos + 1, enter(node) {
+    if (node.name === 'Link') {
+      let textFrom = node.from, textTo = node.from;
+      let urlFrom = node.to, urlTo = node.to;
+      let markCount = 0;
+      const c = node.node.cursor();
+      if (c.firstChild()) {
+        do {
+          if (c.name === 'LinkMark') {
+            markCount++;
+            if (markCount === 1) textFrom = c.to;   // after '['
+            if (markCount === 2) textTo = c.from;    // before ']'
+          }
+          if (c.name === 'URL') {
+            urlFrom = c.from;
+            urlTo = c.to;
+          }
+        } while (c.nextSibling());
+      }
+      result = { linkFrom: node.from, linkTo: node.to, textFrom, textTo, urlFrom, urlTo };
+    }
+  }});
+  return result;
+}
+
 function showLinkPrompt(view: EditorView): boolean {
   dismissLinkPrompt();
 
   const { from, to } = view.state.selection.main;
-  const tree = syntaxTree(view.state);
+  const existing = findLinkAt(view, from);
 
-  // Check if cursor/selection is inside an existing link
-  let linkFrom = -1, linkTo = -1, linkTextFrom = -1, linkTextTo = -1, linkUrlFrom = -1, linkUrlTo = -1;
-  let hasExistingLink = false;
-  tree.iterate({ from: from, to: Math.max(to, from + 1), enter(node) {
-    if (node.name === 'Link') {
-      hasExistingLink = true;
-      linkFrom = node.from;
-      linkTo = node.to;
-      linkTextFrom = node.from;
-      linkTextTo = node.from;
-      linkUrlFrom = node.to;
-      linkUrlTo = node.to;
-      const c = node.node.cursor();
-      if (c.firstChild()) {
-        do {
-          if (c.name === 'LinkLabel') {
-            linkTextFrom = c.from + 1;
-            linkTextTo = c.to - 1;
-          }
-          if (c.name === 'URL') {
-            linkUrlFrom = c.from;
-            linkUrlTo = c.to;
-          }
-        } while (c.nextSibling());
-      }
-    }
-  }});
+  return showLinkPromptAt(view, from, to, existing);
+}
+
+function handleLinkDblClick(view: EditorView, event: MouseEvent): boolean {
+  const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+  if (pos === null) return false;
+
+  const existing = findLinkAt(view, pos);
+  if (!existing) return false;
+
+  // Check the click is on the link text (between [ and ])
+  if (pos < existing.textFrom || pos > existing.textTo) return false;
+
+  event.preventDefault();
+  dismissLinkPrompt();
+  return showLinkPromptAt(view, pos, pos, existing);
+}
+
+function showLinkPromptAt(
+  view: EditorView,
+  from: number,
+  to: number,
+  existing: ReturnType<typeof findLinkAt>,
+): boolean {
+  const hasExistingLink = existing !== null;
+  const linkFrom = existing?.linkFrom ?? -1;
+  const linkTo = existing?.linkTo ?? -1;
+  const linkTextFrom = existing?.textFrom ?? -1;
+  const linkTextTo = existing?.textTo ?? -1;
+  const linkUrlFrom = existing?.urlFrom ?? -1;
+  const linkUrlTo = existing?.urlTo ?? -1;
 
   // Position the tooltip near the selection
-  const coords = view.coordsAtPos(from);
+  const posForCoords = hasExistingLink ? linkTextFrom : from;
+  const coords = view.coordsAtPos(posForCoords);
   if (!coords) return true;
 
   const editorRect = view.dom.getBoundingClientRect();
@@ -549,8 +587,20 @@ function showLinkPrompt(view: EditorView): boolean {
 
   prompt.appendChild(input);
 
-  // Add remove button if editing existing link
+  // Add Open + Remove buttons if editing existing link
   if (hasExistingLink) {
+    const openBtn = document.createElement('button');
+    openBtn.className = 'link-prompt-remove';
+    openBtn.textContent = 'Open';
+    openBtn.addEventListener('click', () => {
+      const currentUrl = normalizeUrl(input.value);
+      if (currentUrl) {
+        const api = (window as any).electronAPI;
+        if (api?.openExternal) api.openExternal(currentUrl);
+      }
+    });
+    prompt.appendChild(openBtn);
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'link-prompt-remove';
     removeBtn.textContent = 'Remove';
@@ -844,6 +894,7 @@ export function createEditor(container: HTMLElement, state: AppState): EditorVie
     EditorView.domEventHandlers({
       paste: (event, view) => handlePaste(view, event),
       click: (event, view) => handleLinkClick(view, event),
+      dblclick: (event, view) => handleLinkDblClick(view, event),
     }),
     EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
