@@ -575,32 +575,6 @@ body.has-window-controls #toolbar-controls {
   animation: panelIn 0.18s var(--transition-fn);
 }
 
-/* Arrow border (behind) */
-#settings-panel::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  right: 18px;
-  width: 22px;
-  height: 8px;
-  background: var(--divider-bold);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  pointer-events: none;
-}
-
-/* Arrow fill (on top) */
-#settings-panel::after {
-  content: '';
-  position: absolute;
-  top: -7px;
-  right: 19px;
-  width: 20px;
-  height: 7px;
-  background: var(--bg-elevated);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  z-index: 1;
-  pointer-events: none;
-}
 
 @keyframes panelIn {
   from {
@@ -712,7 +686,7 @@ body.has-window-controls #toolbar-controls {
   border-radius: 0;
   background:
     linear-gradient(var(--bg-tertiary), var(--bg-tertiary)) 0 center / 100% 2px no-repeat,
-    linear-gradient(to right, var(--divider-bold) 1px, transparent 1px) 0 center / calc(100% / 16) 6px repeat-x;
+    linear-gradient(to right, var(--divider-bold) 1px, transparent 1px) 7px center / calc((100% - 14px) / 16) 6px repeat-x;
 }
 
 #font-size-slider::-webkit-slider-thumb {
