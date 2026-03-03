@@ -548,17 +548,13 @@ body.has-window-controls #toolbar-controls {
 
 #save-status {
   margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
   display: flex;
   align-items: center;
-  gap: 4px;
-  transition: opacity 0.3s var(--transition-fn);
 }
 
 #save-status .save-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--text-muted);
   transition: background-color 0.3s var(--transition-fn);
