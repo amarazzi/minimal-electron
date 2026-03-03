@@ -388,9 +388,9 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
     if (!endMarker && selected.includes('\n\n')) {
       const parts = selected.split(/(\n\n+)/);
 
-      // Strip one level of markers from a content chunk
+      // Strip one level of markers from text (ignoring surrounding whitespace)
       function stripMarkers(text: string): { stripped: string; had: boolean } {
-        let s = text;
+        let s = text.replace(/\n+$/, '').replace(/^\n+/, '');
         let had = false;
         if (s.startsWith(marker)) { s = s.slice(marker.length); had = true; }
         if (s.endsWith(closing)) { s = s.slice(0, -closing.length); had = true; }
@@ -420,13 +420,17 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
       }
 
       // Wrap: add markers to each paragraph (strip existing first to avoid double)
+      // Ensure closing marker is right after text, not after trailing newlines
       let result = '';
       for (const part of parts) {
         if (/^\n\n+$/.test(part)) {
           result += part;
         } else if (part.trim()) {
-          const clean = stripMarkers(part).stripped;
-          result += marker + clean + closing;
+          const trailingMatch = part.match(/(\n+)$/);
+          const trailing = trailingMatch ? trailingMatch[1] : '';
+          const content = trailing ? part.slice(0, -trailing.length) : part;
+          const clean = stripMarkers(content).stripped;
+          result += marker + clean + closing + trailing;
         } else {
           result += part;
         }
