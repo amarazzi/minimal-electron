@@ -162,11 +162,11 @@ function updateSaveStatus(): void {
   const isSaved = tab.content === tab.savedContent;
   if (isSaved) {
     saveStatusEl.className = 'saved';
-    saveStatusEl.innerHTML = '<span class="save-dot"></span> Saved';
   } else {
     saveStatusEl.className = '';
-    saveStatusEl.innerHTML = '<span class="save-dot"></span> Unsaved';
   }
+  const textNode = saveStatusEl.lastChild;
+  if (textNode) textNode.textContent = isSaved ? ' Saved' : ' Unsaved';
 }
 
 updateStatusBar();
