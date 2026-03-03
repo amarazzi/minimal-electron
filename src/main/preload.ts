@@ -21,6 +21,7 @@ export interface ElectronAPI {
 
   // Utilities
   getFilePathFromDrop(file: File): string;
+  openExternal(url: string): void;
 
   // Platform
   platform: string;
@@ -54,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Utilities
   getFilePathFromDrop: (file: File) => webUtils.getPathForFile(file),
+  openExternal: (url: string) => ipcRenderer.send('shell:open-external', url),
 
   // Platform
   platform: process.platform,

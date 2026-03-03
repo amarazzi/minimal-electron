@@ -142,6 +142,10 @@ ipcMain.on('window:force-close', () => {
   mainWindow?.close();
 });
 
+ipcMain.on('shell:open-external', (_event, url: string) => {
+  shell.openExternal(url);
+});
+
 ipcMain.on('window:minimize', () => {
   mainWindow?.minimize();
 });

@@ -24,6 +24,7 @@ declare global {
       onBeforeClose(callback: () => void): void;
       onFontSizeShortcut(callback: (key: string) => void): void;
       getFilePathFromDrop(file: File): string;
+      openExternal(url: string): void;
       platform: string;
     };
   }

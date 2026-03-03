@@ -666,6 +666,47 @@ function toggleLinePrefix(view: EditorView, prefix: string): boolean {
   return true;
 }
 
+// ── Click-to-open links ───────────────────────────────────────────────
+
+function handleLinkClick(view: EditorView, event: MouseEvent): boolean {
+  // Only handle Cmd/Ctrl+click
+  const isMac = navigator.platform.includes('Mac');
+  if (!(isMac ? event.metaKey : event.ctrlKey)) return false;
+
+  const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+  if (pos === null) return false;
+
+  const tree = syntaxTree(view.state);
+  let url: string | null = null;
+
+  tree.iterate({
+    from: pos,
+    to: pos + 1,
+    enter(node) {
+      if (node.name === 'Link') {
+        const c = node.node.cursor();
+        if (c.firstChild()) {
+          do {
+            if (c.name === 'URL') {
+              url = view.state.doc.sliceString(c.from, c.to);
+            }
+          } while (c.nextSibling());
+        }
+      }
+    },
+  });
+
+  if (url) {
+    const api = (window as any).electronAPI;
+    if (api?.openExternal) {
+      api.openExternal(url);
+    }
+    event.preventDefault();
+    return true;
+  }
+  return false;
+}
+
 // ── Rich text paste handler ───────────────────────────────────────────
 
 function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
@@ -785,6 +826,7 @@ export function createEditor(container: HTMLElement, state: AppState): EditorVie
     fontCompartment.of(buildFontExtension(state.selectedFont.cssFontFamily, state.fontSize)),
     EditorView.domEventHandlers({
       paste: (event, view) => handlePaste(view, event),
+      click: (event, view) => handleLinkClick(view, event),
     }),
     EditorView.updateListener.of((update: ViewUpdate) => {
       if (update.docChanged) {
