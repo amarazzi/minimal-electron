@@ -383,15 +383,49 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
       }
     }
 
-    // Multi-paragraph: wrap each paragraph individually so markdown parser recognises them
+    // Multi-paragraph: wrap/unwrap each paragraph individually
     if (!endMarker && selected.includes('\n\n')) {
       const parts = selected.split(/(\n\n+)/);
+
+      // Strip one level of markers from a content chunk
+      function stripMarkers(text: string): { stripped: string; had: boolean } {
+        let s = text;
+        let had = false;
+        if (s.startsWith(marker)) { s = s.slice(marker.length); had = true; }
+        if (s.endsWith(closing)) { s = s.slice(0, -closing.length); had = true; }
+        return { stripped: s, had };
+      }
+
+      // Check if surrounding markers exist (hidden by WYSIWYG)
+      const beforeFrom = Math.max(0, from - marker.length);
+      const afterTo = Math.min(to + closing.length, view.state.doc.length);
+      const hasSurrounding = view.state.sliceDoc(beforeFrom, from) === marker &&
+                             view.state.sliceDoc(to, afterTo) === closing;
+
+      const contentParts = parts.filter(p => !/^\n\n+$/.test(p) && p.trim());
+      const allHadMarkers = hasSurrounding && contentParts.length > 0 &&
+        contentParts.every(p => stripMarkers(p).had);
+
+      if (allHadMarkers) {
+        // Unwrap: strip all inter-paragraph markers + remove surrounding markers
+        const result = parts.map(p => {
+          if (/^\n\n+$/.test(p) || !p.trim()) return p;
+          return stripMarkers(p).stripped;
+        }).join('');
+        view.dispatch({
+          changes: { from: beforeFrom, to: afterTo, insert: result },
+        });
+        return true;
+      }
+
+      // Wrap: add markers to each paragraph (strip existing first to avoid double)
       let result = '';
       for (const part of parts) {
         if (/^\n\n+$/.test(part)) {
           result += part;
         } else if (part.trim()) {
-          result += marker + part + closing;
+          const clean = stripMarkers(part).stripped;
+          result += marker + clean + closing;
         } else {
           result += part;
         }
