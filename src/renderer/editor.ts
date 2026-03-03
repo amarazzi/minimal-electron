@@ -9,7 +9,7 @@ import {
   WidgetType,
   placeholder as cmPlaceholder,
 } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { standardKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { syntaxTree } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
@@ -428,10 +428,77 @@ function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
   return false; // Let default paste handle plain text
 }
 
+// ── Paragraph navigation (standard macOS Option+Arrow Up/Down) ────────
+
+function findParagraphBoundary(doc: import('@codemirror/state').Text, pos: number, dir: -1 | 1): number {
+  let line = doc.lineAt(pos);
+  const isBlank = (l: import('@codemirror/state').Line) => l.text.trim().length === 0;
+
+  // Skip current line
+  let lineNum = line.number + dir;
+
+  // If we're on a non-blank line, skip past remaining non-blank lines, then skip blank lines
+  // If we're on a blank line, skip past remaining blank lines, then skip non-blank lines
+  const startOnBlank = isBlank(line);
+
+  // Phase 1: skip lines of the same type (blank/non-blank)
+  while (lineNum >= 1 && lineNum <= doc.lines) {
+    const l = doc.line(lineNum);
+    if (isBlank(l) !== startOnBlank) break;
+    lineNum += dir;
+  }
+
+  // Phase 2: if we started on non-blank, we're now on blank lines — skip them too
+  if (!startOnBlank) {
+    while (lineNum >= 1 && lineNum <= doc.lines) {
+      const l = doc.line(lineNum);
+      if (!isBlank(l)) break;
+      lineNum += dir;
+    }
+  }
+
+  // Clamp and return position
+  if (lineNum < 1) return 0;
+  if (lineNum > doc.lines) return doc.length;
+  const targetLine = doc.line(lineNum);
+  return dir === -1 ? targetLine.from : targetLine.to;
+}
+
+function cursorParagraphUp(view: EditorView): boolean {
+  const { state } = view;
+  const pos = findParagraphBoundary(state.doc, state.selection.main.head, -1);
+  view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+  return true;
+}
+
+function cursorParagraphDown(view: EditorView): boolean {
+  const { state } = view;
+  const pos = findParagraphBoundary(state.doc, state.selection.main.head, 1);
+  view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+  return true;
+}
+
+function selectParagraphUp(view: EditorView): boolean {
+  const { state } = view;
+  const pos = findParagraphBoundary(state.doc, state.selection.main.head, -1);
+  view.dispatch({ selection: { anchor: state.selection.main.anchor, head: pos }, scrollIntoView: true });
+  return true;
+}
+
+function selectParagraphDown(view: EditorView): boolean {
+  const { state } = view;
+  const pos = findParagraphBoundary(state.doc, state.selection.main.head, 1);
+  view.dispatch({ selection: { anchor: state.selection.main.anchor, head: pos }, scrollIntoView: true });
+  return true;
+}
+
 // ── Build formatting keybindings ──────────────────────────────────────
 
 function buildFormattingKeymap(state: AppState) {
   return keymap.of([
+    // Paragraph navigation (standard macOS Option+Arrow behavior)
+    { key: 'Alt-ArrowUp', run: cursorParagraphUp, shift: selectParagraphUp },
+    { key: 'Alt-ArrowDown', run: cursorParagraphDown, shift: selectParagraphDown },
     {
       key: 'Mod-b',
       run: (view) => wrapSelection(view, '**'),
@@ -526,7 +593,7 @@ export function createEditor(container: HTMLElement, state: AppState): EditorVie
   const extensions: Extension[] = [
     history(),
     buildFormattingKeymap(state),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
+    keymap.of([...standardKeymap, ...historyKeymap]),
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     markdownDecoPlugin,
     EditorView.lineWrapping,
