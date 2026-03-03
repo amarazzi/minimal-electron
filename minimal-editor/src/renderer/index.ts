@@ -22,6 +22,7 @@ declare global {
       minimizeWindow(): void;
       maximizeWindow(): void;
       onBeforeClose(callback: () => void): void;
+      getFilePathFromDrop(file: File): string;
       platform: string;
     };
   }
@@ -423,7 +424,10 @@ document.addEventListener('drop', async (e) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !['txt', 'md', 'markdown', 'mdown', 'text'].includes(ext)) continue;
 
-    const result = await window.electronAPI.readFile((file as any).path);
+    const filePath = window.electronAPI.getFilePathFromDrop(file);
+    if (!filePath) continue;
+
+    const result = await window.electronAPI.readFile(filePath);
     if (result) {
       state.openFileIntoTab(result.filePath, result.content);
     }

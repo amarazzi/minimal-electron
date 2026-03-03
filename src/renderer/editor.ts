@@ -676,7 +676,9 @@ export async function saveCurrentTabAs(state: AppState, view: EditorView): Promi
   if (!tab) return false;
 
   tab.content = view.state.doc.toString();
-  const result = await api.saveFileAs(tab.title + '.txt', tab.content);
+  const ext = tab.filePath?.split('.').pop() || 'txt';
+  const defaultName = tab.title + '.' + ext;
+  const result = await api.saveFileAs(defaultName, tab.content);
   if (result) {
     state.markSaved(result.filePath);
     return true;
@@ -740,6 +742,7 @@ export async function handleBeforeClose(state: AppState, view: EditorView): Prom
       } else {
         const saveResult = await api.saveFileAs(tab.title + '.txt', tab.content);
         if (!saveResult) return; // User cancelled
+        state.markSaved(saveResult.filePath);
       }
     } else if (result === 'cancel') {
       return; // Don't close
