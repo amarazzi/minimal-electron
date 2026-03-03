@@ -41,7 +41,7 @@ function buildTheme(isDark: boolean): Extension {
   const activeLine = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
   const codeBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const codeColor = isDark ? '#f5a0a0' : '#c44040';
-  const linkColor = isDark ? '#6ba3d6' : '#0066cc';
+  const linkColor = isDark ? '#4da3ff' : '#0066cc';
   const headingColor = isDark ? '#f0f0f2' : '#111';
   const quoteColor = isDark ? '#888' : '#777';
 
