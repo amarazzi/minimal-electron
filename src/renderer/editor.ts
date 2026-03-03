@@ -383,6 +383,26 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
       }
     }
 
+    // Multi-paragraph: wrap each paragraph individually so markdown parser recognises them
+    if (!endMarker && selected.includes('\n\n')) {
+      const parts = selected.split(/(\n\n+)/);
+      let result = '';
+      for (const part of parts) {
+        if (/^\n\n+$/.test(part)) {
+          result += part;
+        } else if (part.trim()) {
+          result += marker + part + closing;
+        } else {
+          result += part;
+        }
+      }
+      view.dispatch({
+        changes: { from, to, insert: result },
+        selection: { anchor: from, head: from + result.length },
+      });
+      return true;
+    }
+
     const wrapped = marker + selected + closing;
     view.dispatch({
       changes: { from, to, insert: wrapped },
@@ -457,37 +477,54 @@ function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
 // ── Paragraph navigation (standard macOS Option+Arrow Up/Down) ────────
 
 function findParagraphBoundary(doc: import('@codemirror/state').Text, pos: number, dir: -1 | 1): number {
-  let line = doc.lineAt(pos);
-  const isBlank = (l: import('@codemirror/state').Line) => l.text.trim().length === 0;
+  const isBlank = (lineNum: number) => doc.line(lineNum).text.trim().length === 0;
+  const line = doc.lineAt(pos);
 
-  // Skip current line
-  let lineNum = line.number + dir;
-
-  // If we're on a non-blank line, skip past remaining non-blank lines, then skip blank lines
-  // If we're on a blank line, skip past remaining blank lines, then skip non-blank lines
-  const startOnBlank = isBlank(line);
-
-  // Phase 1: skip lines of the same type (blank/non-blank)
-  while (lineNum >= 1 && lineNum <= doc.lines) {
-    const l = doc.line(lineNum);
-    if (isBlank(l) !== startOnBlank) break;
-    lineNum += dir;
-  }
-
-  // Phase 2: if we started on non-blank, we're now on blank lines — skip them too
-  if (!startOnBlank) {
-    while (lineNum >= 1 && lineNum <= doc.lines) {
-      const l = doc.line(lineNum);
-      if (!isBlank(l)) break;
-      lineNum += dir;
+  if (dir === -1) {
+    // Moving up
+    if (isBlank(line.number)) {
+      // On blank line: skip blanks up, then find start of that paragraph
+      let ln = line.number - 1;
+      while (ln >= 1 && isBlank(ln)) ln--;
+      while (ln >= 1 && !isBlank(ln)) ln--;
+      return ln < 1 ? 0 : doc.line(ln + 1).from;
     }
+    // On a non-blank line: find start of current paragraph
+    let paraStart = line.number;
+    while (paraStart > 1 && !isBlank(paraStart - 1)) paraStart--;
+    const paraStartPos = doc.line(paraStart).from;
+    if (pos > paraStartPos) {
+      // Not at start → go to start of current paragraph
+      return paraStartPos;
+    }
+    // Already at start → go to start of previous paragraph
+    let ln = paraStart - 1;
+    while (ln >= 1 && isBlank(ln)) ln--;
+    while (ln >= 1 && !isBlank(ln)) ln--;
+    return ln < 1 ? 0 : doc.line(ln + 1).from;
+  } else {
+    // Moving down
+    if (isBlank(line.number)) {
+      // On blank line: skip blanks down, then find end of that paragraph
+      let ln = line.number + 1;
+      while (ln <= doc.lines && isBlank(ln)) ln++;
+      while (ln <= doc.lines && !isBlank(ln)) ln++;
+      return ln > doc.lines ? doc.length : doc.line(ln - 1).to;
+    }
+    // On a non-blank line: find end of current paragraph
+    let paraEnd = line.number;
+    while (paraEnd < doc.lines && !isBlank(paraEnd + 1)) paraEnd++;
+    const paraEndPos = doc.line(paraEnd).to;
+    if (pos < paraEndPos) {
+      // Not at end → go to end of current paragraph
+      return paraEndPos;
+    }
+    // Already at end → go to end of next paragraph
+    let ln = paraEnd + 1;
+    while (ln <= doc.lines && isBlank(ln)) ln++;
+    while (ln <= doc.lines && !isBlank(ln)) ln++;
+    return ln > doc.lines ? doc.length : doc.line(ln - 1).to;
   }
-
-  // Clamp and return position
-  if (lineNum < 1) return 0;
-  if (lineNum > doc.lines) return doc.length;
-  const targetLine = doc.line(lineNum);
-  return dir === -1 ? targetLine.from : targetLine.to;
 }
 
 function cursorParagraphUp(view: EditorView): boolean {

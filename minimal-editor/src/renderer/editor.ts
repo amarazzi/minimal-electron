@@ -384,6 +384,26 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
       }
     }
 
+    // Multi-paragraph: wrap each paragraph individually so markdown parser recognises them
+    if (!endMarker && selected.includes('\n\n')) {
+      const parts = selected.split(/(\n\n+)/);
+      let result = '';
+      for (const part of parts) {
+        if (/^\n\n+$/.test(part)) {
+          result += part;
+        } else if (part.trim()) {
+          result += marker + part + closing;
+        } else {
+          result += part;
+        }
+      }
+      view.dispatch({
+        changes: { from, to, insert: result },
+        selection: { anchor: from, head: from + result.length },
+      });
+      return true;
+    }
+
     const wrapped = marker + selected + closing;
     view.dispatch({
       changes: { from, to, insert: wrapped },
