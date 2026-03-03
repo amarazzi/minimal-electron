@@ -454,6 +454,161 @@ function wrapSelection(view: EditorView, marker: string, endMarker?: string): bo
   return true;
 }
 
+// ── Link prompt (Cmd+K) ─────────────────────────────────────────────
+
+let activeLinkPrompt: HTMLElement | null = null;
+
+function dismissLinkPrompt(): void {
+  if (activeLinkPrompt) {
+    activeLinkPrompt.remove();
+    activeLinkPrompt = null;
+  }
+}
+
+function showLinkPrompt(view: EditorView): boolean {
+  dismissLinkPrompt();
+
+  const { from, to } = view.state.selection.main;
+  const tree = syntaxTree(view.state);
+
+  // Check if cursor/selection is inside an existing link
+  let existingLink: { from: number; to: number; textFrom: number; textTo: number; urlFrom: number; urlTo: number } | null = null;
+  tree.iterate({ from: from, to: Math.max(to, from + 1), enter(node) {
+    if (node.name === 'Link') {
+      const linkFrom = node.from;
+      const linkTo = node.to;
+      let textFrom = linkFrom, textTo = linkFrom, urlFrom = linkTo, urlTo = linkTo;
+      // Find LinkLabel and URL children
+      const cursor = node.node.cursor();
+      if (cursor.firstChild()) {
+        do {
+          if (cursor.name === 'LinkLabel') {
+            // LinkLabel includes [ and ], content is inside
+            textFrom = cursor.from + 1;
+            textTo = cursor.to - 1;
+          }
+          if (cursor.name === 'URL') {
+            urlFrom = cursor.from;
+            urlTo = cursor.to;
+          }
+        } while (cursor.nextSibling());
+      }
+      existingLink = { from: linkFrom, to: linkTo, textFrom, textTo, urlFrom, urlTo };
+    }
+  }});
+
+  // Position the tooltip near the selection
+  const coords = view.coordsAtPos(from);
+  if (!coords) return true;
+
+  const editorRect = view.dom.getBoundingClientRect();
+
+  const prompt = document.createElement('div');
+  prompt.className = 'link-prompt';
+
+  const input = document.createElement('input');
+  input.className = 'link-prompt-input';
+  input.type = 'text';
+  input.placeholder = 'Paste or type a link...';
+
+  if (existingLink) {
+    input.value = view.state.sliceDoc(existingLink.urlFrom, existingLink.urlTo);
+  }
+
+  prompt.appendChild(input);
+
+  // Add remove button if editing existing link
+  if (existingLink) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'link-prompt-remove';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', () => {
+      if (existingLink) {
+        const linkText = view.state.sliceDoc(existingLink.textFrom, existingLink.textTo);
+        view.dispatch({
+          changes: { from: existingLink.from, to: existingLink.to, insert: linkText },
+        });
+      }
+      dismissLinkPrompt();
+      view.focus();
+    });
+    prompt.appendChild(removeBtn);
+  }
+
+  // Position
+  const left = coords.left - editorRect.left;
+  const top = coords.bottom - editorRect.top + 4;
+  prompt.style.left = left + 'px';
+  prompt.style.top = top + 'px';
+
+  view.dom.style.position = 'relative';
+  view.dom.appendChild(prompt);
+  activeLinkPrompt = prompt;
+
+  input.focus();
+
+  const commit = () => {
+    const url = input.value.trim();
+    if (!url) {
+      // If editing existing link and cleared URL, remove the link
+      if (existingLink) {
+        const linkText = view.state.sliceDoc(existingLink.textFrom, existingLink.textTo);
+        view.dispatch({
+          changes: { from: existingLink.from, to: existingLink.to, insert: linkText },
+        });
+      }
+      dismissLinkPrompt();
+      view.focus();
+      return;
+    }
+
+    if (existingLink) {
+      // Update URL of existing link
+      view.dispatch({
+        changes: { from: existingLink.urlFrom, to: existingLink.urlTo, insert: url },
+      });
+    } else if (from < to) {
+      // Wrap selected text as link
+      const selectedText = view.state.sliceDoc(from, to);
+      view.dispatch({
+        changes: { from, to, insert: '[' + selectedText + '](' + url + ')' },
+      });
+    } else {
+      // No selection — insert link with URL as text
+      const linkText = '[' + url + '](' + url + ')';
+      view.dispatch({
+        changes: { from, to: from, insert: linkText },
+      });
+    }
+    dismissLinkPrompt();
+    view.focus();
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      dismissLinkPrompt();
+      view.focus();
+    }
+    e.stopPropagation();
+  });
+
+  // Close on click outside
+  const outsideHandler = (e: MouseEvent) => {
+    if (!prompt.contains(e.target as Node)) {
+      dismissLinkPrompt();
+      document.removeEventListener('mousedown', outsideHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('mousedown', outsideHandler), 0);
+
+  return true;
+}
+
 function toggleLinePrefix(view: EditorView, prefix: string): boolean {
   const { from } = view.state.selection.main;
   const line = view.state.doc.lineAt(from);
@@ -615,7 +770,7 @@ function buildFormattingKeymap(state: AppState) {
     },
     {
       key: 'Mod-k',
-      run: (view) => wrapSelection(view, '[', '](url)'),
+      run: (view) => showLinkPrompt(view),
     },
     {
       key: 'Mod-1',
