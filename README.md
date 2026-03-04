@@ -1,8 +1,8 @@
 # minimal
 
-A distraction-free text editor with live Markdown formatting, built with Electron.
+A distraction-free text editor with live Markdown formatting, built with Electron, TypeScript, and CodeMirror 6.
 
-Inspired by editors like uFocus and AI Writer. Originally a macOS SwiftUI app, rebuilt from the ground up as a cross-platform Electron application.
+Inspired by editors like uFocus and AI Writer, minimal strips away the clutter and lets you focus on writing. Runs on macOS, Windows, and Linux.
 
 ---
 
