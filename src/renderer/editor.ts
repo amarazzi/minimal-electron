@@ -643,11 +643,11 @@ function buildFormattingKeymap(state: AppState) {
     },
     // Tab navigation
     {
-      key: 'Mod-Alt-ArrowLeft',
+      key: 'Alt-ArrowLeft',
       run: () => { state.selectPreviousTab(); return true; },
     },
     {
-      key: 'Mod-Alt-ArrowRight',
+      key: 'Alt-ArrowRight',
       run: () => { state.selectNextTab(); return true; },
     },
     // File operations
@@ -745,7 +745,7 @@ export function createEditor(container: HTMLElement, state: AppState): EditorVie
 // ── Save / close helpers (use electron API) ───────────────────────────
 
 export async function saveCurrentTab(state: AppState, view: EditorView): Promise<boolean> {
-  const api = (window as any).electronAPI;
+  const api = window.electronAPI;
   const tab = state.activeTab;
   if (!tab) return false;
 
@@ -765,7 +765,7 @@ export async function saveCurrentTab(state: AppState, view: EditorView): Promise
 }
 
 export async function saveCurrentTabAs(state: AppState, view: EditorView): Promise<boolean> {
-  const api = (window as any).electronAPI;
+  const api = window.electronAPI;
   const tab = state.activeTab;
   if (!tab) return false;
 
@@ -781,7 +781,7 @@ export async function saveCurrentTabAs(state: AppState, view: EditorView): Promi
 }
 
 export async function openFile(state: AppState): Promise<void> {
-  const api = (window as any).electronAPI;
+  const api = window.electronAPI;
   const files = await api.openFile();
   if (!files) return;
   for (const file of files) {
@@ -790,7 +790,10 @@ export async function openFile(state: AppState): Promise<void> {
 }
 
 export async function closeTabWithSaveCheck(state: AppState, tabId: string, view: EditorView): Promise<boolean> {
-  const api = (window as any).electronAPI;
+  // Don't allow closing the last tab
+  if (state.tabs.length <= 1) return false;
+
+  const api = window.electronAPI;
   const tab = state.tabs.find((t) => t.id === tabId);
   if (!tab) return false;
 
@@ -816,7 +819,7 @@ export async function closeTabWithSaveCheck(state: AppState, tabId: string, view
 }
 
 export async function handleBeforeClose(state: AppState, view: EditorView): Promise<void> {
-  const api = (window as any).electronAPI;
+  const api = window.electronAPI;
   const unsavedTabs = state.tabs.filter((t) => t.content !== t.savedContent);
 
   if (unsavedTabs.length === 0) {
@@ -833,6 +836,7 @@ export async function handleBeforeClose(state: AppState, view: EditorView): Prom
       tab.content = view.state.doc.toString();
       if (tab.filePath) {
         await api.saveFile(tab.filePath, tab.content);
+        state.markSaved();
       } else {
         const saveResult = await api.saveFileAs(tab.title + '.txt', tab.content);
         if (!saveResult) return; // User cancelled

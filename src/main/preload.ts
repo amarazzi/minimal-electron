@@ -44,11 +44,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
 
-  // Events from main
+  // Events from main (use once-and-replace pattern to avoid listener leaks)
   onBeforeClose: (callback: () => void) => {
+    ipcRenderer.removeAllListeners('app:before-close');
     ipcRenderer.on('app:before-close', () => callback());
   },
   onFontSizeShortcut: (callback: (key: string) => void) => {
+    ipcRenderer.removeAllListeners('font-size-shortcut');
     ipcRenderer.on('font-size-shortcut', (_event, key: string) => callback(key));
   },
 

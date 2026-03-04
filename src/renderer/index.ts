@@ -294,6 +294,9 @@ const shortcutsList = document.getElementById('shortcuts-list')!;
 const dontShowAgain = document.getElementById('dont-show-again') as HTMLInputElement;
 const welcomeToggle = document.getElementById('welcome-toggle')!;
 
+const altKey = isMac ? '⌥' : 'Alt+';
+const shiftKey = isMac ? '⇧' : 'Shift+';
+
 const shortcuts = [
   {
     section: 'Formatting',
@@ -321,15 +324,15 @@ const shortcuts = [
       { keys: 'T', action: 'New tab' },
       { keys: 'W', action: 'Close tab' },
       { keys: 'S', action: 'Save' },
-      { keys: '⇧S', action: 'Save as' },
+      { keys: `${shiftKey}S`, action: 'Save as' },
       { keys: 'O', action: 'Open' },
     ],
   },
   {
     section: 'Navigation',
     items: [
-      { keys: '⌥←', action: 'Previous tab' },
-      { keys: '⌥→', action: 'Next tab' },
+      { keys: `${altKey}←`, action: 'Previous tab' },
+      { keys: `${altKey}→`, action: 'Next tab' },
     ],
   },
   {
@@ -337,8 +340,8 @@ const shortcuts = [
     items: [
       { keys: '+', action: 'Increase font size' },
       { keys: '−', action: 'Decrease font size' },
-      { keys: '⇧D', action: 'Toggle dark / light mode' },
-      { keys: '⇧T', action: 'Typography settings' },
+      { keys: `${shiftKey}D`, action: 'Toggle dark / light mode' },
+      { keys: `${shiftKey}T`, action: 'Typography settings' },
       { keys: '/', action: 'Show this window' },
     ],
   },
@@ -458,14 +461,6 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.key === 'w') {
     e.preventDefault();
     closeTabWithSaveCheck(state, state.activeTabId, editorView);
-  }
-  if (mod && e.key === '-') {
-    e.preventDefault();
-    state.setFontSize(state.fontSize - 1);
-  }
-  if (mod && (e.key === '=' || e.key === '+')) {
-    e.preventDefault();
-    state.setFontSize(state.fontSize + 1);
   }
   // Escape closes modals
   if (e.key === 'Escape') {
